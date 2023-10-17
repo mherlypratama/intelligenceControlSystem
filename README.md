@@ -1,5 +1,9 @@
 # Greenhouse Pertanian
 
+## Hardware
+
+1. Esp32 Wroom DFRobot
+
 ## Pin Sensor
 
 ### Analog
