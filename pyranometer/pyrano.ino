@@ -1,11 +1,11 @@
 #include <SoftwareSerial.h>
 
-#define RE 8
-#define DE 7
+#define RE 14
+#define DE 13
 
 const byte pyranometer[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0x0A};
 byte values[8];
-SoftwareSerial mod(2, 3);
+SoftwareSerial mod(25, 26);
 
 void setup()
 {

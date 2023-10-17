@@ -1,13 +1,16 @@
 // PH
 #include <OneWire.h>
-#define SensorPin A0        // the pH meter Analog output is connected with the search Arduino’s Analog
-unsigned long int avgValue; // Store the average value of the sensor feedback
-float b;
-int buf[10], temp;
-float phValue;
+#include "DFRobot_ESP_PH.h"
+#include "EEPROM.h"
+
+DFRobot_ESP_PH ph;
+#define ESPADC 4096.0   // the esp Analog Digital Convertion value
+#define ESPVOLTAGE 3300 // the esp voltage supply value
+#define PH_PIN 35       // the esp gpio data pin number
+float voltage, phValue, temperature = 25;
 
 // TDS
-#define TdsSensorPin 15   // sesuaikan dengan pin arduino
+#define TdsSensorPin 34   // sesuaikan dengan pin arduino
 #define VREF 5.0          // analog reference voltage(Volt) of the ADC
 #define SCOUNT 30         // sum of sample point
 int analogBuffer[SCOUNT]; // store the analog value in the array, read from ADC
@@ -30,10 +33,11 @@ unsigned long noRainTimeout = 10000;    // Timeout dalam milidetik (misalnya, 10
 void setup()
 {
     pinMode(TdsSensorPin, INPUT);
-    pinMode(13, OUTPUT);
     pinMode(rainSensorPin, INPUT_PULLUP);                                          // Mengatur pin sensor hujan sebagai input dengan pull-up
     attachInterrupt(digitalPinToInterrupt(rainSensorPin), rainInterrupt, FALLING); // Menghubungkan interrupt ke pin sensor hujan saat pulsa jatuh
     Serial.begin(9600);
+    EEPROM.begin(32); // needed to permit storage of calibration value in eeprom
+    ph.begin();
     Serial.println("Ready"); // Test the serial monitor
 }
 void loop()
@@ -57,10 +61,8 @@ void loop()
     Serial.println(temperature);
 
     sensorPH();
-    Serial.print("    pH:");
-    Serial.print(phValue, 2);
-    Serial.println(" ");
     sensorTDS();
+
     Serial.println(" ");
     digitalWrite(13, HIGH);
     delay(800);
@@ -69,28 +71,20 @@ void loop()
 
 void sensorPH()
 {
-    for (int i = 0; i < 10; i++) // Get 10 sample value from the sensor for smooth the value
+    static unsigned long timepoint = millis();
+    if (millis() - timepoint > 1000U) // time interval: 1s
     {
-        buf[i] = analogRead(SensorPin);
-        delay(10);
+        timepoint = millis();
+        // voltage = rawPinValue / esp32ADC * esp32Vin
+        voltage = analogRead(PH_PIN) / ESPADC * ESPVOLTAGE; // read the voltage
+        // Serial.print("voltage:");
+        // Serial.println(voltage, 4);
+
+        phValue = ph.readPH(voltage, temperature); // convert voltage to pH with temperature compensation
+        Serial.print("pH:");
+        Serial.println(phValue, 4);
     }
-    for (int i = 0; i < 9; i++) // sort the analog from small to large
-    {
-        for (int j = i + 1; j < 10; j++)
-        {
-            if (buf[i] > buf[j])
-            {
-                temp = buf[i];
-                buf[i] = buf[j];
-                buf[j] = temp;
-            }
-        }
-    }
-    avgValue = 0;
-    for (int i = 2; i < 8; i++) // take the average value of 6 center sample
-        avgValue += buf[i];
-    phValue = (float)avgValue * 3.3 / 4096 / 3.3; // convert the analog into millivolt
-    phValue = (3.5 * phValue) - 0.2;
+    ph.calibration(voltage, temperature);
 }
 
 void sensorTDS()
