@@ -10,6 +10,7 @@
 
 1. Sensor PH terhubung ke pin `35`
 2. Sensor TDS terhubung ke pin `34`
+3. Sensor Rain terhubung ke pin `15`
 
 ### Digital
 
