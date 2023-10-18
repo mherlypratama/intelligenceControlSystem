@@ -22,6 +22,7 @@
 
 1. Sensor BME-280
 2. Sensor Soil Moisture
+3. Infrared Sensor
 
 # intelligenceControlSystem
 
