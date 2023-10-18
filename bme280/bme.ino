@@ -1,7 +1,7 @@
 #include "DFRobot_BME280.h"
 #include "Wire.h"
 
-typedef DFRobot_BME280_IIC BME; // ******** use abbreviations instead of full names ********
+typedef DFRobot_BME280_IIC BME; // *** use abbreviations instead of full names ***
 
 BME bme(&Wire, 0x77); // select TwoWire peripheral and set sensor address
 

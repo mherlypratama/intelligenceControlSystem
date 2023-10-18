@@ -1,7 +1,11 @@
+Sensor Wind Direction
+    Sensor Anemometer
+        Sensor Pyranometer
+
 #include "RS485_Wind_Direction_Transmitter_V2.h"
 #include <SoftwareSerial.h>
 #include <Adafruit_MLX90614.h>
-Adafruit_MLX90614 mlx = Adafruit_MLX90614();
+            Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 
 #define RE 16
 #define DE 17
