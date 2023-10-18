@@ -21,8 +21,8 @@
 ### I2C Pin(Paralel)
 
 1. Sensor BME-280
-2. Sensor Soil Moisture
-3. Infrared Sensor
+2. Sensor Soil Moisture > ADS115
+3. Infrared Sensor > TCA9548A
 
 # intelligenceControlSystem
 
