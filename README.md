@@ -27,22 +27,35 @@
 
 # intelligenceControlSystem
 
+## ESP32 Greenhouse
+
+### Digital
+
+1. Wind Direction terhubung ke pin `3` dan `1`
+2. Anemometer terhubung ke pin `25` dan `26`
+3. Waterflow terhubung ke pin `0` dan `14`
+4. Weight Sensor terhubung ke pin (`17`, `16`), (`4`, `12`)
+
+### I2c
+
+1. Infrared Sensor > TCA9548A
+
 ## Pyranometer
 
-Kabel biru ----- B
-Kabel Hijau----- A
+*Kabel biru ----- B
+*Kabel Hijau----- A
 
-R0= 25/D2 atau 12/D11
-D1= 26/D3 atau 4/D12
-DE = 13/D7 atau 16
-RE = 14/D6 atau 17
+*R0= 25/D2 atau 12/D11
+*D1= 26/D3 atau 4/D12
+*DE = 13/D7 atau 16
+*RE = 14/D6 atau 17
 
 ## Anemometer
 
-RX= 16 atau 13
-TX= 17 atau 14
+*RX= 16 atau 13
+*TX= 17 atau 14
 
 ## Wind
 
-Rx = 26
-TX = 25
+*Rx = 26
+*TX = 25

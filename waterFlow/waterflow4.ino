@@ -1,110 +1,154 @@
-// Include library
-#include <Arduino.h>
+#define LED_BUILTIN 2
 
-// Define the digital pins to which the water flow sensors are connected
-const int waterFlowPin1 = 2; // Ganti dengan pin yang sesuai
-const int waterFlowPin2 = 3; // Ganti dengan pin yang sesuai
-const int waterFlowPin3 = 4; // Ganti dengan pin yang sesuai
-const int waterFlowPin4 = 5; // Ganti dengan pin yang sesuai
+// Define pins for water flow sensors
+#define SENSOR1 3
+#define SENSOR2 25
+#define SENSOR3 26
+#define SENSOR4 0
 
-unsigned int flowRate1 = 0; // Laju aliran air sensor 1 (liter/menit)
-unsigned int flowRate2 = 0; // Laju aliran air sensor 2 (liter/menit)
-unsigned int flowRate3 = 0; // Laju aliran air sensor 3 (liter/menit)
-unsigned int flowRate4 = 0; // Laju aliran air sensor 4 (liter/menit)
+long currentMillis = 0;
+long previousMillis = 0;
+int interval = 1000;
+boolean ledState = LOW;
 
-unsigned long totalMilliliters1 = 0; // Total air yang telah mengalir sensor 1 (mililiter)
-unsigned long totalMilliliters2 = 0; // Total air yang telah mengalir sensor 2 (mililiter)
-unsigned long totalMilliliters3 = 0; // Total air yang telah mengalir sensor 3 (mililiter)
-unsigned long totalMilliliters4 = 0; // Total air yang telah mengalir sensor 4 (mililiter)
+// Calibration factors for each sensor (modify as needed)
+float calibrationFactor1 = 4.5;
+float calibrationFactor2 = 4.5;
+float calibrationFactor3 = 4.5;
+float calibrationFactor4 = 4.5;
 
-unsigned long previousMillis = 0;   // Waktu sebelumnya
-const unsigned long interval = 500; // Interval waktu (dalam milidetik) untuk membaca sensor
+volatile byte pulseCount1, pulseCount2, pulseCount3, pulseCount4;
+byte pulse1Sec1, pulse1Sec2, pulse1Sec3, pulse1Sec4;
+float flowRate1, flowRate2, flowRate3, flowRate4;
+unsigned int flowMilliLitres1, flowMilliLitres2, flowMilliLitres3, flowMilliLitres4;
+unsigned long totalMilliLitres1, totalMilliLitres2, totalMilliLitres3, totalMilliLitres4;
+
+void IRAM_ATTR pulseCounter1()
+{
+    pulseCount1++;
+}
+
+void IRAM_ATTR pulseCounter2()
+{
+    pulseCount2++;
+}
+
+void IRAM_ATTR pulseCounter3()
+{
+    pulseCount3++;
+}
+
+void IRAM_ATTR pulseCounter4()
+{
+    pulseCount4++;
+}
 
 void setup()
 {
-    // Inisialisasi Serial Monitor
     Serial.begin(115200);
 
-    // Set pin water flow sensors sebagai input
-    pinMode(waterFlowPin1, INPUT);
-    pinMode(waterFlowPin2, INPUT);
-    pinMode(waterFlowPin3, INPUT);
-    pinMode(waterFlowPin4, INPUT);
+    pinMode(LED_BUILTIN, OUTPUT);
+
+    pinMode(SENSOR1, INPUT_PULLUP);
+    pinMode(SENSOR2, INPUT_PULLUP);
+    pinMode(SENSOR3, INPUT_PULLUP);
+    pinMode(SENSOR4, INPUT_PULLUP);
+
+    pulseCount1 = 0;
+    pulseCount2 = 0;
+    pulseCount3 = 0;
+    pulseCount4 = 0;
+
+    flowRate1 = 0.0;
+    flowRate2 = 0.0;
+    flowRate3 = 0.0;
+    flowRate4 = 0.0;
+
+    flowMilliLitres1 = 0;
+    flowMilliLitres2 = 0;
+    flowMilliLitres3 = 0;
+    flowMilliLitres4 = 0;
+
+    totalMilliLitres1 = 0;
+    totalMilliLitres2 = 0;
+    totalMilliLitres3 = 0;
+    totalMilliLitres4 = 0;
+
+    attachInterrupt(digitalPinToInterrupt(SENSOR1), pulseCounter1, FALLING);
+    attachInterrupt(digitalPinToInterrupt(SENSOR2), pulseCounter2, FALLING);
+    attachInterrupt(digitalPinToInterrupt(SENSOR3), pulseCounter3, FALLING);
+    attachInterrupt(digitalPinToInterrupt(SENSOR4), pulseCounter4, FALLING);
 }
 
 void loop()
 {
-    unsigned long currentMillis = millis();
+    currentMillis = millis();
 
-    // Baca sensor water flow 1
-    int sensorValue1 = digitalRead(waterFlowPin1);
-    if (sensorValue1 == LOW)
+    if (currentMillis - previousMillis > interval)
     {
-        flowRate1++;
-        totalMilliliters1 += 50; // Sesuaikan faktor konversi sesuai spesifikasi sensor
+        pulse1Sec1 = pulseCount1;
+        pulseCount1 = 0;
 
-        // Baca sensor water flow 2
-        int sensorValue2 = digitalRead(waterFlowPin2);
-        if (sensorValue2 == LOW)
-        {
-            flowRate2++;
-            totalMilliliters2 += 50; // Sesuaikan faktor konversi sesuai spesifikasi sensor
+        pulse1Sec2 = pulseCount2;
+        pulseCount2 = 0;
 
-            // Baca sensor water flow 3
-            int sensorValue3 = digitalRead(waterFlowPin3);
-            if (sensorValue3 == LOW)
-            {
-                flowRate3++;
-                totalMilliliters3 += 50; // Sesuaikan faktor konversi sesuai spesifikasi sensor
+        pulse1Sec3 = pulseCount3;
+        pulseCount3 = 0;
 
-                // Baca sensor water flow 4
-                int sensorValue4 = digitalRead(waterFlowPin4);
-                if (sensorValue4 == LOW)
-                {
-                    flowRate4++;
-                    totalMilliliters4 += 50; // Sesuaikan faktor konversi sesuai spesifikasi sensor
+        pulse1Sec4 = pulseCount4;
+        pulseCount4 = 0;
 
-                    // Cek apakah sudah waktunya untuk menampilkan hasil
-                    if (currentMillis - previousMillis >= interval)
-                    {
-                        // Tampilkan hasil
-                        Serial.print("Sensor 1 - Laju Aliran Air: ");
-                        Serial.print(flowRate1);
-                        Serial.println(" L/min");
-                        Serial.print("Sensor 1 - Total Mililiter Air: ");
-                        Serial.print(totalMilliliters1);
-                        Serial.println(" mL");
+        flowRate1 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec1) / calibrationFactor1;
+        flowRate2 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec2) / calibrationFactor2;
+        flowRate3 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec3) / calibrationFactor3;
+        flowRate4 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec4) / calibrationFactor4;
 
-                        Serial.print("Sensor 2 - Laju Aliran Air: ");
-                        Serial.print(flowRate2);
-                        Serial.println(" L/min");
-                        Serial.print("Sensor 2 - Total Mililiter Air: ");
-                        Serial.print(totalMilliliters2);
-                        Serial.println(" mL");
+        previousMillis = millis();
 
-                        Serial.print("Sensor 3 - Laju Aliran Air: ");
-                        Serial.print(flowRate3);
-                        Serial.println(" L/min");
-                        Serial.print("Sensor 3 - Total Mililiter Air: ");
-                        Serial.print(totalMilliliters3);
-                        Serial.println(" mL");
+        flowMilliLitres1 = (flowRate1 / 60) * 1000;
+        flowMilliLitres2 = (flowRate2 / 60) * 1000;
+        flowMilliLitres3 = (flowRate3 / 60) * 1000;
+        flowMilliLitres4 = (flowRate4 / 60) * 1000;
 
-                        Serial.print("Sensor 4 - Laju Aliran Air: ");
-                        Serial.print(flowRate4);
-                        Serial.println(" L/min");
-                        Serial.print("Sensor 4 - Total Mililiter Air: ");
-                        Serial.print(totalMilliliters4);
-                        Serial.println(" mL");
+        totalMilliLitres1 += flowMilliLitres1;
+        totalMilliLitres2 += flowMilliLitres2;
+        totalMilliLitres3 += flowMilliLitres3;
+        totalMilliLitres4 += flowMilliLitres4;
 
-                        // Reset flowRate dan update previousMillis
-                        flowRate1 = 0;
-                        flowRate2 = 0;
-                        flowRate3 = 0;
-                        flowRate4 = 0;
-                        previousMillis = currentMillis;
-                    }
-                }
-            }
-        }
+        Serial.print("Flow 1: ");
+        Serial.print(int(flowRate1)); // Print the integer part of the variable
+        Serial.print("L/min,   ");
+        // Serial.print("Total Liquid Quantity: ");
+        // Serial.print(totalMilliLitres1);
+        // Serial.print("mL / ");
+        // Serial.print(totalMilliLitres1 / 1000);
+        // Serial.println("L");
+
+        Serial.print("Flow 2: ");
+        Serial.print(int(flowRate2)); // Print the integer part of the variable
+        Serial.print("L/min,   ");
+        // Serial.print("Total Liquid Quantity: ");
+        // Serial.print(totalMilliLitres2);
+        // Serial.print("mL / ");
+        // Serial.print(totalMilliLitres2 / 1000);
+        // Serial.println("L");
+
+        Serial.print("Flow 3: ");
+        Serial.print(int(flowRate3)); // Print the integer part of the variable
+        Serial.print("L/min,   ");
+        // Serial.print("Total Liquid Quantity: ");
+        // Serial.print(totalMilliLitres3);
+        // Serial.print("mL / ");
+        // Serial.print(totalMilliLitres3 / 1000);
+        // Serial.println("L");
+
+        Serial.print("Flow 4: ");
+        Serial.print(int(flowRate4)); // Print the integer part of the variable
+        Serial.println("L/min");
+        // Serial.print("Total Liquid Quantity: ");
+        // Serial.print(totalMilliLitres4);
+        // Serial.print("mL / ");
+        // Serial.print(totalMilliLitres4 / 1000);
+        // Serial.println("L");
     }
 }

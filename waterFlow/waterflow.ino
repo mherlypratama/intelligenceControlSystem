@@ -1,50 +1,63 @@
-// Include library
-#include <Arduino.h>
+#define LED_BUILTIN 2
+#define SENSOR 0
 
-// Define the digital pin to which the water flow sensor is connected
-const int waterFlowPin = 2; // Ganti dengan pin yang sesuai
+long currentMillis = 0;
+long previousMillis = 0;
+int interval = 1000;
+boolean ledState = LOW;
+float calibrationFactor = 4.5;
+volatile byte pulseCount;
+byte pulse1Sec = 0;
+float flowRate;
+unsigned int flowMilliLitres;
+unsigned long totalMilliLitres;
 
-unsigned int flowRate = 0;          // Variable untuk laju aliran air (dalam liter/menit)
-unsigned long totalMilliliters = 0; // Variable untuk menghitung total air yang telah mengalir (dalam mililiter)
-unsigned long previousMillis = 0;   // Variable untuk menyimpan waktu sebelumnya
-const unsigned long interval = 500; // Interval waktu (dalam milidetik) untuk membaca sensor
+void IRAM_ATTR pulseCounter()
+{
+    pulseCount++;
+}
 
 void setup()
 {
-    // Inisialisasi Serial Monitor
     Serial.begin(115200);
 
-    // Set pin water flow sensor sebagai input
-    pinMode(waterFlowPin, INPUT);
+    pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(SENSOR, INPUT_PULLUP);
+
+    pulseCount = 0;
+    flowRate = 0.0;
+    flowMilliLitres = 0;
+    totalMilliLitres = 0;
+    previousMillis = 0;
+
+    attachInterrupt(digitalPinToInterrupt(SENSOR), pulseCounter, FALLING);
 }
 
 void loop()
 {
-    unsigned long currentMillis = millis();
-
-    // Baca sensor water flow
-    int sensorValue = digitalRead(waterFlowPin);
-
-    // Jika sensor mendeteksi aliran air (sensor LOW), tambahkan jumlah liter
-    if (sensorValue == LOW)
+    currentMillis = millis();
+    if (currentMillis - previousMillis > interval)
     {
-        flowRate++;             // Increment laju aliran air
-        totalMilliliters += 50; // Tambahkan 50 mL ke total (kustom sesuai dengan spesifikasi sensor Anda)
-    }
 
-    // Cek apakah sudah waktunya untuk menampilkan hasil
-    if (currentMillis - previousMillis >= interval)
-    {
-        // Tampilkan hasil
-        Serial.print("Laju Aliran Air: ");
-        Serial.print(flowRate);
-        Serial.println(" L/min");
-        Serial.print("Total Mililiter Air: ");
-        Serial.print(totalMilliliters);
-        Serial.println(" mL");
+        pulse1Sec = pulseCount;
+        pulseCount = 0;
 
-        // Reset flowRate dan update previousMillis
-        flowRate = 0;
-        previousMillis = currentMillis;
+        flowRate = ((1000.0 / (millis() - previousMillis)) * pulse1Sec) / calibrationFactor;
+        previousMillis = millis();
+
+        flowMilliLitres = (flowRate / 60) * 1000;
+
+        totalMilliLitres += flowMilliLitres;
+
+        Serial.print("Flow rate: ");
+        Serial.print(int(flowRate)); // Print the integer part of the variable
+        Serial.print("L/min");
+        Serial.print("\t"); // Print tab space
+
+        Serial.print("Output Liquid Quantity: ");
+        Serial.print(totalMilliLitres);
+        Serial.print("mL / ");
+        Serial.print(totalMilliLitres / 1000);
+        Serial.println("L");
     }
 }
