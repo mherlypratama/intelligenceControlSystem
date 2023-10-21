@@ -18,6 +18,7 @@
 2. Sensor Wind Direction terhubung ke pin `1` dan `25`
 3. Sensor Anemometer terhubung ke pin `26` dan `0`
 4. Sensor Waterflow terhubung ke pin `14`, `13`, `17`, dan `16`
+5. Sensor Berat terhubung ke pin `12`(sck) dan `4` (dt)
 
 ### I2C Pin(Paralel)
 

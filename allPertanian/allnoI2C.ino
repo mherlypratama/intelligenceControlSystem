@@ -21,12 +21,16 @@
 #include <Wire.h>
 #include <WiFi.h>
 
+#include <HX711_ADC.h>
+#if defined(ESP8266) || defined(ESP32) || defined(AVR)
+#include <EEPROM.h>
+#endif
 #include <PubSubClient.h>
 
 // ***********WIFI*******************
 // Konfigurasi jaringan Wi-Fi
-const char *ssid = "Modal";
-const char *password = "12345678";
+const char *ssid = "Lab Telkom 2.4 GHz";
+const char *password = "telekomunikasi";
 
 // Konfigurasi server MQTT di VPS Anda
 const char *mqtt_server = "vps.isi-net.org";
@@ -53,6 +57,17 @@ unsigned long lastMsgTime = 0;
 const long Interval = 5000; // Kirim data setiap 5 detik
 
 // TCA9548A I2C Multiplexer Address
+
+// ******************Berat*************
+const int HX711_dout = 4; // mcu > HX711 dout pin, must be external interrupt capable!
+const int HX711_sck = 12; // mcu > HX711 sck pin
+
+// HX711 constructor:
+HX711_ADC LoadCell(HX711_dout, HX711_sck);
+
+const int calVal_eepromAdress = 0;
+unsigned long t = 0;
+volatile boolean newDataReady;
 
 // PH
 #include <OneWire.h>
@@ -175,6 +190,7 @@ void setup()
     setWater();
     setupWiFi();
     client.setServer(mqtt_server, mqtt_port);
+    setBerat();
 
     Serial.println("Ready"); // Test the serial monitor
 }
@@ -202,6 +218,7 @@ void loop()
     sensorTDS();
     sensorwind();
     waterFlow();
+    sensorBerat();
 
     Serial.print(readWindSpeed(Address0)); // Read wind speed
     Serial.println("m/s");
@@ -241,25 +258,31 @@ void nodered()
     char tempStr[10];
     snprintf(tempStr, sizeof(tempStr), "%.2f", temperature); // Mengonversi nilai suhu ke string
     client.publish(topic_ds, tempStr);                       // Mengirim data suhu ke broker MQTT
-    delay(5000);
 
     // Kirim data suhu ke broker MQTT
     char windStr[10];
     snprintf(windStr, sizeof(windStr), "%.2f", Angle); // Mengonversi nilai suhu ke string
     client.publish(topic_winddir, windStr);            // Mengirim data suhu ke broker MQTT
-    delay(5000);
 
     // Kirim data suhu ke broker MQTT
     char anemStr[10];
     snprintf(anemStr, sizeof(anemStr), "%.2f", readWindSpeed(Address0)); // Mengonversi nilai suhu ke string
     client.publish(topic_wind, anemStr);                                 // Mengirim data suhu ke broker MQTT
-    delay(5000);
 
     // Kirim data suhu ke broker MQTT
     char waterStr[10];
     snprintf(waterStr, sizeof(waterStr), "%.2f", flowRate1); // Mengonversi nilai suhu ke string
     client.publish(topic_water, waterStr);                   // Mengirim data suhu ke broker MQTT
-    delay(5000);
+
+    // Kirim data suhu ke broker MQTT
+    char waterStr[10];
+    snprintf(waterStr, sizeof(waterStr), "%.2f", flowRate1); // Mengonversi nilai suhu ke string
+    client.publish(topic_water, waterStr);                   // Mengirim data suhu ke broker MQTT
+
+    // Kirim data suhu ke broker MQTT
+    char beratStr[10];
+    snprintf(beratStr, sizeof(beratStr), "%.2f", i); // Mengonversi nilai suhu ke string
+    client.publish(topic_weight, beratStr);          // Mengirim data suhu ke broker MQTT
 }
 
 void setupWiFi()
@@ -289,6 +312,79 @@ void reconnectMQTT()
             Serial.println(client.state());
             delay(5000);
         }
+    }
+}
+
+void setBerat()
+{
+    float calibrationValue;    // calibration value
+    calibrationValue = 108.71; // uncomment this if you want to set this value in the sketch
+#if defined(ESP8266) || defined(ESP32)
+    // EEPROM.begin(512); // uncomment this if you use ESP8266 and want to fetch the value from eeprom
+#endif
+    EEPROM.get(calVal_eepromAdress, calibrationValue); // uncomment this if you want to fetch the value from eeprom
+
+    LoadCell.begin();
+    // LoadCell.setReverseOutput();
+    unsigned long stabilizingtime = 2000; // tare preciscion can be improved by adding a few seconds of stabilizing time
+    boolean _tare = true;                 // set this to false if you don't want tare to be performed in the next step
+    LoadCell.start(stabilizingtime, _tare);
+    if (LoadCell.getTareTimeoutFlag())
+    {
+        Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
+        while (1)
+            ;
+    }
+    else
+    {
+        LoadCell.setCalFactor(calibrationValue); // set calibration value (float)
+        Serial.println("Startup is complete");
+    }
+
+    attachInterrupt(digitalPinToInterrupt(HX711_dout), dataReadyISR, FALLING);
+}
+// interrupt routine:
+void dataReadyISR()
+{
+    if (LoadCell.update())
+    {
+        newDataReady = 1;
+    }
+}
+
+void sensorBerat()
+{
+    const int serialPrintInterval = 0; // increase value to slow down serial print activity
+
+    // get smoothed value from the dataset:
+    if (newDataReady)
+    {
+        if (millis() > t + serialPrintInterval)
+        {
+            float i = LoadCell.getData();
+            newDataReady = 0;
+            Serial.print("Load_cell output val: ");
+            Serial.print(i);
+            Serial.println(" gram");
+
+            // Serial.print("  ");
+            // Serial.println(millis() - t);
+            t = millis();
+        }
+    }
+
+    // receive command from serial terminal, send 't' to initiate tare operation:
+    if (Serial.available() > 0)
+    {
+        char inByte = Serial.read();
+        if (inByte == 't')
+            LoadCell.tareNoDelay();
+    }
+
+    // check if last tare operation is complete
+    if (LoadCell.getTareStatus() == true)
+    {
+        Serial.println("Tare complete");
     }
 }
 
