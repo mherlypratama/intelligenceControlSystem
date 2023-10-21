@@ -106,10 +106,10 @@ float voltage, phValue;
 #include "RS485_Wind_Direction_Transmitter_V2.h"
 
 #if defined(ARDUINO_AVR_UNO) || defined(ESP8266) // Use softserial
-SoftwareSerial softSerial(/*rx =*/1, /*tx =*/25);
+SoftwareSerial softSerial(/*rx =*/0, /*tx =*/26);
 RS485_Wind_Direction_Transmitter_V2 windDirection(/*softSerial =*/&softSerial);
 #elif defined(ESP32) // Use the hardserial of remappable pin: Serial1
-RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1, /*rx =*/1, /*tx =*/25);
+RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1, /*rx =*/0, /*tx =*/26);
 #else                // Use hardserial: Serial1
 RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1);
 #endif
@@ -121,7 +121,7 @@ const char *Orientation[17] = {
     "south by southwest", "southwest", "west by southwest", "west", "west by northwest", "northwest", "north by northwest", "north"};
 
 // Anemo
-SoftwareSerial mySerial2(26, 0); // Define the soft serial port, port 3 is TX, port 2 is RX,
+SoftwareSerial mySerial2(25, 21); // Define the soft serial port, port 3 is TX, port 2 is RX,
 
 uint8_t Address0 = 0x10;
 
@@ -135,7 +135,7 @@ int analogBufferIndex = 0, copyIndex = 0;
 float averageVoltage = 0, tdsValue = 0, temperature = 25;
 
 // DS18S20 dan Rain
-int DS18S20_Pin = 25; // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
+int DS18S20_Pin = 22; // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
 
 // Temperature chip i/o
 OneWire ds(DS18S20_Pin);
@@ -150,10 +150,10 @@ unsigned long noRainTimeout = 10000;    // Timeout dalam milidetik (misalnya, 10
 #define LED_BUILTIN 2
 
 // Define pins for water flow sensors
-#define SENSOR1 3
-#define SENSOR2 25
-#define SENSOR3 26
-#define SENSOR4 0
+#define SENSOR1 14
+#define SENSOR2 13
+#define SENSOR3 17
+#define SENSOR4 16
 
 long currentMillis = 0;
 long previousMillis = 0;
