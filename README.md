@@ -33,10 +33,12 @@
 
 ### Digital
 
-1. Wind Direction terhubung ke pin `3` dan `1`
-2. Anemometer terhubung ke pin `25` dan `26`
-3. Waterflow terhubung ke pin `0` dan `14`
-4. Weight Sensor terhubung ke pin (`17`, `16`), (`4`, `12`)
+1. Anemometer terhubung ke pin `25` dan `26`
+2. Wind Direction terhubung ke pin `0` dan `14`
+3. Waterflow terhubung ke pin `13` dan `21`
+4. Weight Sensor terhubung ke pin (`22`, `19`), (`23`, `18`)
+5. Pyranometer terhubung ke pin (`17`, `16`)
+6. Relay terhubung ke pin
 
 ### I2c
 
