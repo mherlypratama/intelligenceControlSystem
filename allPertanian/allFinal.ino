@@ -88,7 +88,7 @@ const int calVal_eepromAdress = 0;
 unsigned long t = 0;
 volatile boolean newDataReady;
 
-float infra1, infra2, infra3;
+float infra1, infra2;
 
 // PH
 #include <OneWire.h>
@@ -375,10 +375,7 @@ void nodered()
     char infraStr2[10];
     snprintf(infraStr2, sizeof(infraStr2), "%.2f", infra2); // Mengonversi nilai suhu ke string
     client.publish(topic_infra, infraStr2);                 // Mengirim data suhu ke broker MQTT
-
-    char infraStr3[10];
-    snprintf(infraStr3, sizeof(infraStr3), "%.2f", infra3); // Mengonversi nilai suhu ke string
-    client.publish(topic_infra, infraStr3);                 // Mengirim data suhu ke broker MQTT
+                                                            // Mengirim data suhu ke broker MQTT
 }
 
 void setupWiFi()
@@ -986,23 +983,10 @@ void setInfra()
     }
 
     // Wait for a moment before switching to the second sensor
-    delay(1000);
+    delay(500);
 
     // Configure TCA9548A channel for the second sensor
     selectTCAChannel(1); // Choose the channel for the second sensor
-
-    if (!mlx.begin())
-    {
-        Serial.println("Error connecting to MLX sensor 2. Check wiring.");
-        while (1)
-            ;
-    }
-
-    // Wait for a moment before switching to the second sensor
-    delay(1000);
-
-    // Configure TCA9548A channel for the second sensor
-    selectTCAChannel(2); // Choose the channel for the second sensor
 
     if (!mlx.begin())
     {
@@ -1030,15 +1014,6 @@ void sensorInfra()
     Serial.print("Object temperature = ");
     Serial.print(mlx.readObjectTempC());
     infra2 = mlx.readObjectTempC();
-    Serial.println("°C");
-
-    selectTCAChannel(2); // Select channel 1 (second sensor)
-    Serial.print("Sensor 3 - Ambient temperature = ");
-    Serial.print(mlx.readAmbientTempC());
-    Serial.print("°C   ");
-    Serial.print("Object temperature = ");
-    Serial.print(mlx.readObjectTempC());
-    infra3 = mlx.readObjectTempC();
     Serial.println("°C");
 }
 

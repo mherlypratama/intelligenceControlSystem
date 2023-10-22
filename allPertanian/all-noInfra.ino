@@ -56,7 +56,7 @@ const char *topic_ph = "ph/pertanian";
 const char *topic_wind = "wind/pertanian";
 const char *topic_winddir = "winddir/pertanian";
 
-float Angle, i;
+float Angle, i, fix0, fix1, fix2, fix3, temp, press, alti, humi;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -274,6 +274,7 @@ void loop()
     waterFlow();
     sensorBerat();
 
+    Serial.print("Kecepatan angin: ");     // Read wind speed
     Serial.print(readWindSpeed(Address0)); // Read wind speed
     Serial.println("m/s");
 
@@ -281,7 +282,6 @@ void loop()
     digitalWrite(13, HIGH);
     delay(800);
     digitalWrite(13, LOW);
-    sensorInfra();
     Serial.println("-----------------------------------------------------------------");
     soilSensor();
     Serial.println("-----------------------------------------------------------------");
@@ -302,6 +302,23 @@ void nodered()
     char phStr[10];
     snprintf(phStr, sizeof(phStr), "%.2f", phValue); // Mengonversi nilai pH ke string
     client.publish(topic_ph, phStr);                 // Mengirim data pH ke broker MQTT
+
+    // BME
+    char tempStr1[10];
+    snprintf(tempStr1, sizeof(tempStr1), "%.2f", temp); // Mengonversi nilai pH ke string
+    client.publish(topic_bme, tempStr1);                // Mengirim data pH ke broker MQTT
+
+    char pressStr[10];
+    snprintf(pressStr, sizeof(pressStr), "%.2f", press); // Mengonversi nilai pH ke string
+    client.publish(topic_bme, pressStr);                 // Mengirim data pH ke broker MQTT
+
+    char altiStr[10];
+    snprintf(altiStr, sizeof(altiStr), "%.2f", alti); // Mengonversi nilai pH ke string
+    client.publish(topic_bme, altiStr);               // Mengirim data pH ke broker MQTT
+
+    char humiStr[10];
+    snprintf(humiStr, sizeof(humiStr), "%.2f", humi); // Mengonversi nilai pH ke string
+    client.publish(topic_bme, humiStr);               // Mengirim data pH ke broker MQTT
 
     // Kirim data TDS ke broker MQTT
     char tdsStr[10];
@@ -353,17 +370,25 @@ void nodered()
     snprintf(beratStr, sizeof(beratStr), "%.2f", i); // Mengonversi nilai suhu ke string
     client.publish(topic_weight, beratStr);          // Mengirim data suhu ke broker MQTT
 
-    char infraStr[10];
-    snprintf(infraStr, sizeof(infraStr), "%.2f", infra1); // Mengonversi nilai suhu ke string
-    client.publish(topic_infra, infraStr);                // Mengirim data suhu ke broker MQTT
+    // Kirim data suhu ke broker MQTT
+    char soilStr0[10];
+    snprintf(soilStr0, sizeof(soilStr0), "%.2f", fix0); // Mengonversi nilai suhu ke string
+    client.publish(topic_soil, soilStr0);               // Mengirim data suhu ke broker MQTT
 
-    char infraStr2[10];
-    snprintf(infraStr2, sizeof(infraStr2), "%.2f", infra2); // Mengonversi nilai suhu ke string
-    client.publish(topic_infra, infraStr2);                 // Mengirim data suhu ke broker MQTT
+    // Kirim data suhu ke broker MQTT
+    char soilStr1[10];
+    snprintf(soilStr1, sizeof(soilStr1), "%.2f", fix1); // Mengonversi nilai suhu ke string
+    client.publish(topic_soil, soilStr1);               // Mengirim data suhu ke broker MQTT
 
-    char infraStr3[10];
-    snprintf(infraStr3, sizeof(infraStr3), "%.2f", infra3); // Mengonversi nilai suhu ke string
-    client.publish(topic_infra, infraStr3);                 // Mengirim data suhu ke broker MQTT
+    // Kirim data suhu ke broker MQTT
+    char soilStr2[10];
+    snprintf(soilStr2, sizeof(soilStr2), "%.2f", fix2); // Mengonversi nilai suhu ke string
+    client.publish(topic_soil, soilStr2);               // Mengirim data suhu ke broker MQTT
+
+    // Kirim data suhu ke broker MQTT
+    char soilStr3[10];
+    snprintf(soilStr3, sizeof(soilStr3), "%.2f", fix3); // Mengonversi nilai suhu ke string
+    client.publish(topic_soil, soilStr3);               // Mengirim data suhu ke broker MQTT
 }
 
 void setupWiFi()
