@@ -269,15 +269,10 @@ void nodered()
     snprintf(anemStr, sizeof(anemStr), "%.2f", readWindSpeed(Address0)); // Mengonversi nilai suhu ke string
     client.publish(topic_wind, anemStr);                                 // Mengirim data suhu ke broker MQTT
 
-    // Kirim data suhu ke broker MQTT
-    char waterStr[10];
-    snprintf(waterStr, sizeof(waterStr), "%.2f", flowRate1); // Mengonversi nilai suhu ke string
-    client.publish(topic_water, waterStr);                   // Mengirim data suhu ke broker MQTT
-
-    // Kirim data suhu ke broker MQTT
-    char waterStr1[10];
-    snprintf(waterStr1, sizeof(waterStr1), "%.2f", flowRate1); // Mengonversi nilai suhu ke string
-    client.publish(topic_water, waterStr1);                    // Mengirim data suhu ke broker MQTT
+    // Buat objek JSON yang berisi data dari keempat sensor
+    char waterStr[100]; // Buffer untuk menyimpan JSON
+    snprintf(waterStr, sizeof(waterStr), "{\"Water 1\": %.2f, \"Water 2\": %.2f, \"Water 3\": %.2f, \"Water 4\": %.2f}", flowRate1, flowRate2, flowRate3, flowRate4);
+    client.publish(topic_water, waterStr); // Mengirim data suhu ke broker MQTT
 
     // Kirim data suhu ke broker MQTT
     char beratStr[10];

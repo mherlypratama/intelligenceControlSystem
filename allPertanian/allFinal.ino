@@ -57,7 +57,8 @@ const char *topic_ph = "ph/pertanian";
 const char *topic_wind = "wind/pertanian";
 const char *topic_winddir = "winddir/pertanian";
 
-float Angle, i;
+float Angle, i, temp, humi;
+uint32_t press;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -343,39 +344,25 @@ void nodered()
     snprintf(anemStr, sizeof(anemStr), "%.2f", readWindSpeed(Address0)); // Mengonversi nilai suhu ke string
     client.publish(topic_wind, anemStr);                                 // Mengirim data suhu ke broker MQTT
 
-    // Kirim data suhu ke broker MQTT
-    char waterStr[10];
-    snprintf(waterStr, sizeof(waterStr), "%.2f", flowRate1); // Mengonversi nilai suhu ke string
-    client.publish(topic_water, waterStr);                   // Mengirim data suhu ke broker MQTT
+    // Buat objek JSON yang berisi data dari keempat sensor
+    char bmeStr[100]; // Buffer untuk menyimpan JSON
+    snprintf(bmeStr, sizeof(bmeStr), "{\"Temp \": %.2f, \"Humi \": %.2f, \"Press \": %.2f}", temp, humi, press);
+    client.publish(topic_bme, bmeStr);
 
-    // Kirim data suhu ke broker MQTT
-    char waterStr1[10];
-    snprintf(waterStr1, sizeof(waterStr1), "%.2f", flowRate2); // Mengonversi nilai suhu ke string
-    client.publish(topic_water, waterStr1);                    // Mengirim data suhu ke broker MQTT
+    // Buat objek JSON yang berisi data dari keempat sensor
+    char waterStr[100]; // Buffer untuk menyimpan JSON
+    snprintf(waterStr, sizeof(waterStr), "{\"Water 1\": %.2f, \"Water 2\": %.2f, \"Water 3\": %.2f, \"Water 4\": %.2f}", flowRate1, flowRate2, flowRate3, flowRate4);
+    client.publish(topic_water, waterStr);
 
-    // Kirim data suhu ke broker MQTT
-    char waterStr2[10];
-    snprintf(waterStr2, sizeof(waterStr2), "%.2f", flowRate3); // Mengonversi nilai suhu ke string
-    client.publish(topic_water, waterStr2);                    // Mengirim data suhu ke broker MQTT
-
-    // Kirim data suhu ke broker MQTT
-    char waterStr3[10];
-    snprintf(waterStr3, sizeof(waterStr3), "%.2f", flowRate4); // Mengonversi nilai suhu ke string
-    client.publish(topic_water, waterStr3);                    // Mengirim data suhu ke broker MQTT
+    // Buat objek JSON yang berisi data dari keempat sensor
+    char infraStr[100]; // Buffer untuk menyimpan JSON
+    snprintf(infraStr, sizeof(infraStr), "{\"Infra 1\": %.2f, \"Infra 2\": %.2f}", infra1, infra2);
+    client.publish(topic_infra, infraStr); // Mengirim data suhu ke broker MQTT
 
     // Kirim data suhu ke broker MQTT
     char beratStr[10];
     snprintf(beratStr, sizeof(beratStr), "%.2f", i); // Mengonversi nilai suhu ke string
     client.publish(topic_weight, beratStr);          // Mengirim data suhu ke broker MQTT
-
-    char infraStr[10];
-    snprintf(infraStr, sizeof(infraStr), "%.2f", infra1); // Mengonversi nilai suhu ke string
-    client.publish(topic_infra, infraStr);                // Mengirim data suhu ke broker MQTT
-
-    char infraStr2[10];
-    snprintf(infraStr2, sizeof(infraStr2), "%.2f", infra2); // Mengonversi nilai suhu ke string
-    client.publish(topic_infra, infraStr2);                 // Mengirim data suhu ke broker MQTT
-                                                            // Mengirim data suhu ke broker MQTT
 }
 
 void setupWiFi()

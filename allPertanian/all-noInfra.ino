@@ -56,7 +56,8 @@ const char *topic_ph = "ph/pertanian";
 const char *topic_wind = "wind/pertanian";
 const char *topic_winddir = "winddir/pertanian";
 
-float Angle, i, fix0, fix1, fix2, fix3, temp, press, alti, humi;
+float Angle, i, temp, humi, alti;
+uint32_t press;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -65,7 +66,6 @@ unsigned long lastMsgTime = 0;
 const long Interval = 5000; // Kirim data setiap 5 detik
 
 DFRobot_ADS1115 ads(&Wire);
-// TCA9548A I2C Multiplexer Address
 
 typedef DFRobot_BME280_IIC BME; // *** use abbreviations instead of full names ***
 
@@ -84,7 +84,7 @@ const int calVal_eepromAdress = 0;
 unsigned long t = 0;
 volatile boolean newDataReady;
 
-float infra1, infra2, infra3;
+float infra1, infra2;
 
 // PH
 #include <OneWire.h>
@@ -237,6 +237,8 @@ void setup()
 
     Wire.begin(); // Initialize the I2C communication
 
+    // Atur pin TCA
+
     ads.setAddr_ADS1115(ADS1115_IIC_ADDRESS1); // 0x48
     ads.setGain(eGAIN_TWOTHIRDS);              // 2/3x gain
     ads.setMode(eMODE_SINGLE);                 // single-shot mode
@@ -274,7 +276,6 @@ void loop()
     waterFlow();
     sensorBerat();
 
-    Serial.print("Kecepatan angin: ");     // Read wind speed
     Serial.print(readWindSpeed(Address0)); // Read wind speed
     Serial.println("m/s");
 
@@ -303,23 +304,6 @@ void nodered()
     snprintf(phStr, sizeof(phStr), "%.2f", phValue); // Mengonversi nilai pH ke string
     client.publish(topic_ph, phStr);                 // Mengirim data pH ke broker MQTT
 
-    // BME
-    char tempStr1[10];
-    snprintf(tempStr1, sizeof(tempStr1), "%.2f", temp); // Mengonversi nilai pH ke string
-    client.publish(topic_bme, tempStr1);                // Mengirim data pH ke broker MQTT
-
-    char pressStr[10];
-    snprintf(pressStr, sizeof(pressStr), "%.2f", press); // Mengonversi nilai pH ke string
-    client.publish(topic_bme, pressStr);                 // Mengirim data pH ke broker MQTT
-
-    char altiStr[10];
-    snprintf(altiStr, sizeof(altiStr), "%.2f", alti); // Mengonversi nilai pH ke string
-    client.publish(topic_bme, altiStr);               // Mengirim data pH ke broker MQTT
-
-    char humiStr[10];
-    snprintf(humiStr, sizeof(humiStr), "%.2f", humi); // Mengonversi nilai pH ke string
-    client.publish(topic_bme, humiStr);               // Mengirim data pH ke broker MQTT
-
     // Kirim data TDS ke broker MQTT
     char tdsStr[10];
     snprintf(tdsStr, sizeof(tdsStr), "%d", (int)tdsValue); // Mengonversi nilai TDS ke string
@@ -345,50 +329,25 @@ void nodered()
     snprintf(anemStr, sizeof(anemStr), "%.2f", readWindSpeed(Address0)); // Mengonversi nilai suhu ke string
     client.publish(topic_wind, anemStr);                                 // Mengirim data suhu ke broker MQTT
 
-    // Kirim data suhu ke broker MQTT
-    char waterStr[10];
-    snprintf(waterStr, sizeof(waterStr), "%.2f", flowRate1); // Mengonversi nilai suhu ke string
-    client.publish(topic_water, waterStr);                   // Mengirim data suhu ke broker MQTT
+    // Buat objek JSON yang berisi data dari keempat sensor
+    char bmeStr[100]; // Buffer untuk menyimpan JSON
+    snprintf(bmeStr, sizeof(bmeStr), "{\"Temp \": %.2f, \"Humi \": %.2f, \"Press \": %.2f}", temp, humi, press);
+    client.publish(topic_bme, bmeStr);
 
-    // Kirim data suhu ke broker MQTT
-    char waterStr1[10];
-    snprintf(waterStr1, sizeof(waterStr1), "%.2f", flowRate2); // Mengonversi nilai suhu ke string
-    client.publish(topic_water, waterStr1);                    // Mengirim data suhu ke broker MQTT
+    // Buat objek JSON yang berisi data dari keempat sensor
+    char waterStr[100]; // Buffer untuk menyimpan JSON
+    snprintf(waterStr, sizeof(waterStr), "{\"Water 1\": %.2f, \"Water 2\": %.2f, \"Water 3\": %.2f, \"Water 4\": %.2f}", flowRate1, flowRate2, flowRate3, flowRate4);
+    client.publish(topic_water, waterStr);
 
-    // Kirim data suhu ke broker MQTT
-    char waterStr2[10];
-    snprintf(waterStr2, sizeof(waterStr2), "%.2f", flowRate3); // Mengonversi nilai suhu ke string
-    client.publish(topic_water, waterStr2);                    // Mengirim data suhu ke broker MQTT
-
-    // Kirim data suhu ke broker MQTT
-    char waterStr3[10];
-    snprintf(waterStr3, sizeof(waterStr3), "%.2f", flowRate4); // Mengonversi nilai suhu ke string
-    client.publish(topic_water, waterStr3);                    // Mengirim data suhu ke broker MQTT
+    // Buat objek JSON yang berisi data dari keempat sensor
+    char infraStr[100]; // Buffer untuk menyimpan JSON
+    snprintf(infraStr, sizeof(infraStr), "{\"Infra 1\": %.2f, \"Infra 2\": %.2f}", infra1, infra2);
+    client.publish(topic_infra, infraStr); // Mengirim data suhu ke broker MQTT
 
     // Kirim data suhu ke broker MQTT
     char beratStr[10];
     snprintf(beratStr, sizeof(beratStr), "%.2f", i); // Mengonversi nilai suhu ke string
     client.publish(topic_weight, beratStr);          // Mengirim data suhu ke broker MQTT
-
-    // Kirim data suhu ke broker MQTT
-    char soilStr0[10];
-    snprintf(soilStr0, sizeof(soilStr0), "%.2f", fix0); // Mengonversi nilai suhu ke string
-    client.publish(topic_soil, soilStr0);               // Mengirim data suhu ke broker MQTT
-
-    // Kirim data suhu ke broker MQTT
-    char soilStr1[10];
-    snprintf(soilStr1, sizeof(soilStr1), "%.2f", fix1); // Mengonversi nilai suhu ke string
-    client.publish(topic_soil, soilStr1);               // Mengirim data suhu ke broker MQTT
-
-    // Kirim data suhu ke broker MQTT
-    char soilStr2[10];
-    snprintf(soilStr2, sizeof(soilStr2), "%.2f", fix2); // Mengonversi nilai suhu ke string
-    client.publish(topic_soil, soilStr2);               // Mengirim data suhu ke broker MQTT
-
-    // Kirim data suhu ke broker MQTT
-    char soilStr3[10];
-    snprintf(soilStr3, sizeof(soilStr3), "%.2f", fix3); // Mengonversi nilai suhu ke string
-    client.publish(topic_soil, soilStr3);               // Mengirim data suhu ke broker MQTT
 }
 
 void setupWiFi()
@@ -1025,10 +984,10 @@ void soilSensor()
 
 void sensorBME()
 {
-    float temp = bme.getTemperature();
-    uint32_t press = bme.getPressure();
-    float alti = bme.calAltitude(SEA_LEVEL_PRESSURE, press);
-    float humi = bme.getHumidity();
+    temp = bme.getTemperature();
+    press = bme.getPressure();
+    alti = bme.calAltitude(SEA_LEVEL_PRESSURE, press);
+    humi = bme.getHumidity();
 
     Serial.println();
     Serial.println("======== start print ========");
