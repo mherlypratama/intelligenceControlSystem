@@ -331,17 +331,17 @@ void nodered()
 
     // Buat objek JSON yang berisi data dari keempat sensor
     char bmeStr[100]; // Buffer untuk menyimpan JSON
-    snprintf(bmeStr, sizeof(bmeStr), "{\"Temp \": %.2f, \"Humi \": %.2f, \"Press \": %.2f}", temp, humi, press);
+    snprintf(bmeStr, sizeof(bmeStr), "{\"Temp\": %.2f, \"Humi\": %.2f, \"Press\": %.2f}", temp, humi, press);
     client.publish(topic_bme, bmeStr);
 
     // Buat objek JSON yang berisi data dari keempat sensor
     char waterStr[100]; // Buffer untuk menyimpan JSON
-    snprintf(waterStr, sizeof(waterStr), "{\"Water 1\": %.2f, \"Water 2\": %.2f, \"Water 3\": %.2f, \"Water 4\": %.2f}", flowRate1, flowRate2, flowRate3, flowRate4);
+    snprintf(waterStr, sizeof(waterStr), "{\"Water-1\": %.2f, \"Water-2\": %.2f, \"Water-3\": %.2f, \"Water-4\": %.2f}", flowRate1, flowRate2, flowRate3, flowRate4);
     client.publish(topic_water, waterStr);
 
     // Buat objek JSON yang berisi data dari keempat sensor
     char infraStr[100]; // Buffer untuk menyimpan JSON
-    snprintf(infraStr, sizeof(infraStr), "{\"Infra 1\": %.2f, \"Infra 2\": %.2f}", infra1, infra2);
+    snprintf(infraStr, sizeof(infraStr), "{\"Infra-1\": %.2f, \"Infra-2\": %.2f}", infra1, infra2);
     client.publish(topic_infra, infraStr); // Mengirim data suhu ke broker MQTT
 
     // Kirim data suhu ke broker MQTT
