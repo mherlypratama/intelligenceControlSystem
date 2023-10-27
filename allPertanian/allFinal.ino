@@ -20,18 +20,16 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <HX711_ADC.h>
+#include <DFRobot_BMP3XX.h>
+#include <Adafruit_MLX90614.h>
+
 #if defined(ESP8266) || defined(ESP32) || defined(AVR)
 #include <EEPROM.h>
 #endif
 
-// I2C
-#include <Wire.h>
-#include <Adafruit_MLX90614.h>
-
 #include <Wire.h>
 #include <DFRobot_ADS1115.h>
 
-#include "DFRobot_BME280.h"
 #include "Wire.h"
 
 // ***************WIFI***************
@@ -45,6 +43,7 @@ const int mqtt_port = 1883;
 const char *mqtt_user = "unila";
 const char *mqtt_password = "pwdMQTT@123";
 
+const char *topic_utama = "esp/pertanian";
 const char *topic_bme = "bme/pertanian";
 const char *topic_soil = "soil/pertanian";
 const char *topic_weight = "weight/pertanian";
@@ -57,7 +56,7 @@ const char *topic_ph = "ph/pertanian";
 const char *topic_wind = "wind/pertanian";
 const char *topic_winddir = "winddir/pertanian";
 
-float Angle, i, temp, humi;
+float Angle, i, temp, Pressure, altitude;
 uint32_t press;
 
 WiFiClient espClient;
@@ -67,16 +66,6 @@ unsigned long lastMsgTime = 0;
 const long Interval = 5000; // Kirim data setiap 5 detik
 
 DFRobot_ADS1115 ads(&Wire);
-// TCA9548A I2C Multiplexer Address
-#define TCAADDR 0x70
-
-Adafruit_MLX90614 mlx = Adafruit_MLX90614();
-
-typedef DFRobot_BME280_IIC BME; // *** use abbreviations instead of full names ***
-
-BME bme(&Wire, 0x77); // select TwoWire peripheral and set sensor address
-
-#define SEA_LEVEL_PRESSURE 1015.0f
 
 // ***********************Berat*******************
 const int HX711_dout = 4; // mcu > HX711 dout pin, must be external interrupt capable!
@@ -89,7 +78,14 @@ const int calVal_eepromAdress = 0;
 unsigned long t = 0;
 volatile boolean newDataReady;
 
-float infra1, infra2;
+float infra1, infra2, tempe;
+
+// BMP
+DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
+#define CALIBRATE_ABSOLUTE_DIFFERENCE
+
+// Infra
+Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 
 // PH
 #include <OneWire.h>
@@ -122,7 +118,7 @@ const char *Orientation[17] = {
     "south by southwest", "southwest", "west by southwest", "west", "west by northwest", "northwest", "north by northwest", "north"};
 
 // Anemo
-SoftwareSerial mySerial2(25, 21); // Define the soft serial port, port 3 is TX, port 2 is RX,
+SoftwareSerial mySerial2(25, 19); // Define the soft serial port, port 3 is TX, port 2 is RX,
 
 uint8_t Address0 = 0x10;
 
@@ -136,7 +132,7 @@ int analogBufferIndex = 0, copyIndex = 0;
 float averageVoltage = 0, tdsValue = 0, temperature = 25;
 
 // DS18S20 dan Rain
-int DS18S20_Pin = 22; // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
+int DS18S20_Pin = 23; // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
 
 // Temperature chip i/o
 OneWire ds(DS18S20_Pin);
@@ -193,37 +189,6 @@ void IRAM_ATTR pulseCounter4()
     pulseCount4++;
 }
 
-// show last sensor operate status
-void printLastOperateStatus(BME::eStatus_t eStatus)
-{
-    switch (eStatus)
-    {
-    case BME::eStatusOK:
-        Serial.println("everything ok");
-        break;
-    case BME::eStatusErr:
-        Serial.println("unknow error");
-        break;
-    case BME::eStatusErrDeviceNotDetected:
-        Serial.println("device not detected");
-        break;
-    case BME::eStatusErrParameter:
-        Serial.println("parameter error");
-        break;
-    default:
-        Serial.println("unknow status");
-        break;
-    }
-}
-
-void selectTCAChannel(uint8_t channel)
-{
-    // Select the appropriate channel on TCA9548A
-    Wire.beginTransmission(TCAADDR);
-    Wire.write(1 << channel);
-    Wire.endTransmission();
-}
-
 void setup()
 {
 
@@ -239,19 +204,7 @@ void setup()
     mySerial2.begin(9600);
     ModifyAddress(0x00, Address0); // Modify device address0, please comment out this sentence after modifying the address0 and power on again.
 
-    bme.reset();
-    Serial.println("bme read data test");
-    while (bme.begin() != BME::eStatusOK)
-    {
-        Serial.println("bme begin faild");
-        printLastOperateStatus(bme.lastOperateStatus);
-        delay(2000);
-    }
-
     Wire.begin(); // Initialize the I2C communication
-
-    // Atur pin TCA
-    setInfra();
 
     ads.setAddr_ADS1115(ADS1115_IIC_ADDRESS1); // 0x48
     ads.setGain(eGAIN_TWOTHIRDS);              // 2/3x gain
@@ -261,6 +214,8 @@ void setup()
     ads.init();
     setWater();
     setBerat();
+    setInfra();
+    setBMP();
 
     Serial.println("Ready"); // Test the serial monitor
 }
@@ -280,15 +235,17 @@ void loop()
     Serial.println(rainAccumulated, 2); // Menampilkan hingga 2 desimal
 
     // Read temperature and print
-    float temperature = getTemp();
+    tempe = getTemp();
     Serial.print("Temperature: ");
-    Serial.println(temperature);
+    Serial.println(tempe);
 
     sensorPH();
     sensorTDS();
     sensorwind();
     waterFlow();
     sensorBerat();
+    sensorInfra();
+    sensorBMP();
 
     Serial.print(readWindSpeed(Address0)); // Read wind speed
     Serial.println("m/s");
@@ -297,11 +254,8 @@ void loop()
     digitalWrite(13, HIGH);
     delay(800);
     digitalWrite(13, LOW);
-    sensorInfra();
     Serial.println("-----------------------------------------------------------------");
     soilSensor();
-    Serial.println("-----------------------------------------------------------------");
-    sensorBME();
     Serial.println("-----------------------------------------------------------------");
     if (!client.connected())
     {
@@ -315,54 +269,79 @@ void loop()
 
 void nodered()
 {
-    char phStr[10];
-    snprintf(phStr, sizeof(phStr), "%.2f", phValue); // Mengonversi nilai pH ke string
-    client.publish(topic_ph, phStr);                 // Mengirim data pH ke broker MQTT
-
-    // Kirim data TDS ke broker MQTT
-    char tdsStr[10];
-    snprintf(tdsStr, sizeof(tdsStr), "%d", (int)tdsValue); // Mengonversi nilai TDS ke string
-    client.publish(topic_tds, tdsStr);                     // Mengirim data TDS ke broker MQTT
-
-    // Kirim data sensor hujan ke broker MQTT
-    char rainStr[10];
-    snprintf(rainStr, sizeof(rainStr), "%.2f", rainAccumulated); // Mengonversi jumlah hujan ke string
-    client.publish(topic_rain, rainStr);                         // Mengirim data hujan ke broker MQTT
-
-    // Kirim data suhu ke broker MQTT
-    char tempStr[10];
-    snprintf(tempStr, sizeof(tempStr), "%.2f", temperature); // Mengonversi nilai suhu ke string
-    client.publish(topic_ds, tempStr);                       // Mengirim data suhu ke broker MQTT
-
-    // Kirim data suhu ke broker MQTT
-    char windStr[10];
-    snprintf(windStr, sizeof(windStr), "%.2f", Angle); // Mengonversi nilai suhu ke string
-    client.publish(topic_winddir, windStr);            // Mengirim data suhu ke broker MQTT
-
-    // Kirim data suhu ke broker MQTT
-    char anemStr[10];
-    snprintf(anemStr, sizeof(anemStr), "%.2f", readWindSpeed(Address0)); // Mengonversi nilai suhu ke string
-    client.publish(topic_wind, anemStr);                                 // Mengirim data suhu ke broker MQTT
-
     // Buat objek JSON yang berisi data dari keempat sensor
-    char bmeStr[100]; // Buffer untuk menyimpan JSON
-    snprintf(bmeStr, sizeof(bmeStr), "{\"Temp \": %.2f, \"Humi \": %.2f, \"Press \": %.2f}", temp, humi, press);
-    client.publish(topic_bme, bmeStr);
+    char utamaStr[1000]; // Buffer untuk menyimpan JSON
+    snprintf(utamaStr, sizeof(utamaStr),
+             "{"
+             "\"ph\": %.2f,"
+             "\"tds\": %.2f,"
+             "\"rain\": %.2f,"
+             "\"tempDs\": %.2f,"
+             "\"windDirection\": %.2f,"
+             "\"anemo\": %.2f,"
+             "\"infra\": %.2f,"
+             "\"tempeBMP\": %.2f,"
+             "\"press\": %.2f,"
+             "\"alti\": %.2f,"
+             "\"Water_1\": %.2f,"
+             "\"Water_2\": %.2f,"
+             "\"Water_3\": %.2f,"
+             "\"Water_4\": %.2f,"
+             "\"Berat\": %.2f"
+             "}",
+             phValue, (int)tdsValue, rainAccumulated, tempe, Angle, readWindSpeed(Address0),
+             mlx.readObjectTempC(), temp, Pressure, altitude, flowRate1, flowRate2, flowRate3, flowRate4, i);
 
-    // Buat objek JSON yang berisi data dari keempat sensor
-    char waterStr[100]; // Buffer untuk menyimpan JSON
-    snprintf(waterStr, sizeof(waterStr), "{\"Water 1\": %.2f, \"Water 2\": %.2f, \"Water 3\": %.2f, \"Water 4\": %.2f}", flowRate1, flowRate2, flowRate3, flowRate4);
-    client.publish(topic_water, waterStr);
+    client.publish(topic_utama, utamaStr);
 
-    // Buat objek JSON yang berisi data dari keempat sensor
-    char infraStr[100]; // Buffer untuk menyimpan JSON
-    snprintf(infraStr, sizeof(infraStr), "{\"Infra 1\": %.2f, \"Infra 2\": %.2f}", infra1, infra2);
-    client.publish(topic_infra, infraStr); // Mengirim data suhu ke broker MQTT
+    // char phStr[10];
+    // snprintf(phStr, sizeof(phStr), "%.2f", phValue); // Mengonversi nilai pH ke string
+    // client.publish(topic_ph, phStr);                 // Mengirim data pH ke broker MQTT
 
-    // Kirim data suhu ke broker MQTT
-    char beratStr[10];
-    snprintf(beratStr, sizeof(beratStr), "%.2f", i); // Mengonversi nilai suhu ke string
-    client.publish(topic_weight, beratStr);          // Mengirim data suhu ke broker MQTT
+    // // Kirim data TDS ke broker MQTT
+    // char tdsStr[10];
+    // snprintf(tdsStr, sizeof(tdsStr), "%d", (int)tdsValue); // Mengonversi nilai TDS ke string
+    // client.publish(topic_tds, tdsStr);                     // Mengirim data TDS ke broker MQTT
+
+    // // Kirim data sensor hujan ke broker MQTT
+    // char rainStr[10];
+    // snprintf(rainStr, sizeof(rainStr), "%.2f", rainAccumulated); // Mengonversi jumlah hujan ke string
+    // client.publish(topic_rain, rainStr);                         // Mengirim data hujan ke broker MQTT
+
+    // // Kirim data suhu ke broker MQTT
+    // char tempStr[10];
+    // snprintf(tempStr, sizeof(tempStr), "%.2f", tempe); // Mengonversi nilai suhu ke string
+    // client.publish(topic_ds, tempStr);                 // Mengirim data suhu ke broker MQTT
+
+    // // Kirim data suhu ke broker MQTT
+    // char windStr[10];
+    // snprintf(windStr, sizeof(windStr), "%.2f", Angle); // Mengonversi nilai suhu ke string
+    // client.publish(topic_winddir, windStr);            // Mengirim data suhu ke broker MQTT
+
+    // // Kirim data suhu ke broker MQTT
+    // char anemStr[10];
+    // snprintf(anemStr, sizeof(anemStr), "%.2f", readWindSpeed(Address0)); // Mengonversi nilai suhu ke string
+    // client.publish(topic_wind, anemStr);                                 // Mengirim data suhu ke broker MQTT
+
+    // // Kirim data suhu ke broker MQTT
+    // char infraStr[10];
+    // snprintf(infraStr, sizeof(infraStr), "%.2f", mlx.readObjectTempC()); // Mengonversi nilai suhu ke string
+    // client.publish(topic_infra, infraStr);                               // Mengirim data suhu ke broker MQTT
+
+    // // Buat objek JSON yang berisi data dari keempat sensor
+    // char bmeStr[100]; // Buffer untuk menyimpan JSON
+    // snprintf(bmeStr, sizeof(bmeStr), "{\"Temperature\": %.2f, \"Preassure\": %.2f, \"Altitude\": %.2f}", temp, Pressure, altitude);
+    // client.publish(topic_bme, bmeStr);
+
+    // // Buat objek JSON yang berisi data dari keempat sensor
+    // char waterStr[100]; // Buffer untuk menyimpan JSON
+    // snprintf(waterStr, sizeof(waterStr), "{\"Water_1\": %.2f, \"Water_2\": %.2f, \"Water_3\": %.2f, \"Water_4\": %.2f}", flowRate1, flowRate2, flowRate3, flowRate4);
+    // client.publish(topic_water, waterStr);
+
+    // // Kirim data suhu ke broker MQTT
+    // char beratStr[10];
+    // snprintf(beratStr, sizeof(beratStr), "%.2f", i); // Mengonversi nilai suhu ke string
+    // client.publish(topic_weight, beratStr);          // Mengirim data suhu ke broker MQTT
 }
 
 void setupWiFi()
@@ -393,6 +372,28 @@ void reconnectMQTT()
             delay(5000);
         }
     }
+}
+
+void setInfra()
+{
+    if (!mlx.begin())
+    {
+        Serial.println("Error connecting to MLX sensor. Check wiring.");
+        while (1)
+            ;
+    };
+}
+
+void sensorInfra()
+{
+    Serial.print("Ambient temperature = ");
+    Serial.print(mlx.readAmbientTempC());
+    Serial.print("°C");
+    Serial.print("   ");
+    Serial.print("Object temperature = ");
+    Serial.print(mlx.readObjectTempC());
+    Serial.println("°C");
+    Serial.println("-----------------------------------------------------------------");
 }
 
 void setBerat()
@@ -578,6 +579,72 @@ void waterFlow()
     }
 }
 
+void setBMP()
+{
+    int rslt;
+    while (ERR_OK != (rslt = sensor.begin()))
+    {
+        if (ERR_DATA_BUS == rslt)
+        {
+            Serial.println("Data bus error!!!");
+        }
+        else if (ERR_IC_VERSION == rslt)
+        {
+            Serial.println("Chip versions do not match!!!");
+        }
+        delay(3000);
+    }
+    Serial.println("Begin ok!");
+
+    while (!sensor.setSamplingMode(sensor.eUltraPrecision))
+    {
+        Serial.println("Set samping mode fail, retrying....");
+        delay(3000);
+    }
+
+    delay(100);
+#ifdef CALIBRATE_ABSOLUTE_DIFFERENCE
+
+    if (sensor.calibratedAbsoluteDifference(540.0))
+    {
+        Serial.println("Absolute difference base value set successfully!");
+    }
+#endif
+
+    float sampingPeriodus = sensor.getSamplingPeriodUS();
+    Serial.print("samping period : ");
+    Serial.print(sampingPeriodus);
+    Serial.println(" us");
+
+    float sampingFrequencyHz = 1000000 / sampingPeriodus;
+    Serial.print("samping frequency : ");
+    Serial.print(sampingFrequencyHz);
+    Serial.println(" Hz");
+
+    Serial.println();
+    delay(1000);
+}
+
+void sensorBMP()
+{
+    temp = sensor.readTempC();
+    Serial.print("temperature : ");
+    Serial.print(temp);
+    Serial.println(" C");
+
+    Pressure = sensor.readPressPa();
+    Serial.print("Pressure : ");
+    Serial.print(Pressure);
+    Serial.println(" Pa");
+
+    altitude = sensor.readAltitudeM();
+    Serial.print("Altitude : ");
+    Serial.print(altitude);
+    Serial.println(" m");
+
+    Serial.println();
+}
+
 void sensorPH()
 {
     static unsigned long timepoint = millis();
@@ -673,14 +740,14 @@ void rainInterrupt()
 
 float getTemp()
 {
-    // Returns the temperature from one DS18S20 in DEG Celsius
+    // returns the temperature from one DS18S20 in DEG Celsius
 
     byte data[12];
     byte addr[8];
 
     if (!ds.search(addr))
     {
-        // No more sensors on the chain, reset search
+        // no more sensors on chain, reset search
         ds.reset_search();
         return -1000;
     }
@@ -699,16 +766,14 @@ float getTemp()
 
     ds.reset();
     ds.select(addr);
-    ds.write(0x44, 1); // Start conversion, with parasite power on at the end
+    ds.write(0x44, 1); // start conversion, with parasite power on at the end
 
-    delay(1000); // Wait for the conversion to complete (adjust as needed)
-
-    ds.reset();
+    byte present = ds.reset();
     ds.select(addr);
     ds.write(0xBE); // Read Scratchpad
 
     for (int i = 0; i < 9; i++)
-    { // We need 9 bytes
+    { // we need 9 bytes
         data[i] = ds.read();
     }
 
@@ -717,8 +782,8 @@ float getTemp()
     byte MSB = data[1];
     byte LSB = data[0];
 
-    float tempRead = ((MSB << 8) | LSB); // Using two's complement
-    float TemperatureSum = tempRead / 16.0;
+    float tempRead = ((MSB << 8) | LSB); // using two's compliment
+    float TemperatureSum = tempRead / 16;
 
     return TemperatureSum;
 }
@@ -957,53 +1022,6 @@ boolean ModifyAddress(uint8_t Address1, uint8_t Address2)
     return ret;
 }
 
-void setInfra()
-{
-    // Configure TCA9548A channel (0 for the first sensor, 1 for the second sensor)
-    selectTCAChannel(0); // Choose the channel for the first sensor
-
-    if (!mlx.begin())
-    {
-        Serial.println("Error connecting to MLX sensor 1. Check wiring.");
-        while (1)
-            ;
-    }
-
-    // Wait for a moment before switching to the second sensor
-    delay(500);
-
-    // Configure TCA9548A channel for the second sensor
-    selectTCAChannel(1); // Choose the channel for the second sensor
-
-    if (!mlx.begin())
-    {
-        Serial.println("Error connecting to MLX sensor 2. Check wiring.");
-        while (1)
-            ;
-    }
-}
-
-void sensorInfra()
-{
-    selectTCAChannel(0); // Select channel 0 (first sensor)
-    Serial.print("Sensor 1 - Ambient temperature = ");
-    Serial.print(mlx.readAmbientTempC());
-    Serial.print("°C   ");
-    Serial.print("Object temperature = ");
-    Serial.print(mlx.readObjectTempC());
-    infra1 = mlx.readObjectTempC();
-    Serial.println("°C");
-
-    selectTCAChannel(1); // Select channel 1 (second sensor)
-    Serial.print("Sensor 2 - Ambient temperature = ");
-    Serial.print(mlx.readAmbientTempC());
-    Serial.print("°C   ");
-    Serial.print("Object temperature = ");
-    Serial.print(mlx.readObjectTempC());
-    infra2 = mlx.readObjectTempC();
-    Serial.println("°C");
-}
-
 void soilSensor()
 {
     if (ads.checkADS1115())
@@ -1042,24 +1060,4 @@ void soilSensor()
     {
         Serial.println("ADS1115 Disconnected!");
     }
-}
-
-void sensorBME()
-{
-    float temp = bme.getTemperature();
-    uint32_t press = bme.getPressure();
-    float alti = bme.calAltitude(SEA_LEVEL_PRESSURE, press);
-    float humi = bme.getHumidity();
-
-    Serial.println();
-    Serial.println("======== start print ========");
-    Serial.print("temperature (unit Celsius): ");
-    Serial.println(temp);
-    Serial.print("pressure (unit pa):         ");
-    Serial.println(press);
-    Serial.print("altitude (unit meter):      ");
-    Serial.println(alti);
-    Serial.print("humidity (unit percent):    ");
-    Serial.println(humi);
-    Serial.println("========  end print  ========");
 }

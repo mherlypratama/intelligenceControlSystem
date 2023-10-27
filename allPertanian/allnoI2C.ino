@@ -271,7 +271,7 @@ void nodered()
 
     // Buat objek JSON yang berisi data dari keempat sensor
     char waterStr[100]; // Buffer untuk menyimpan JSON
-    snprintf(waterStr, sizeof(waterStr), "{\"Water 1\": %.2f, \"Water 2\": %.2f, \"Water 3\": %.2f, \"Water 4\": %.2f}", flowRate1, flowRate2, flowRate3, flowRate4);
+    snprintf(waterStr, sizeof(waterStr), "{\"Water1\": %.2f, \"Water2\": %.2f, \"Water3\": %.2f, \"Water4\": %.2f}", flowRate1, flowRate2, flowRate3, flowRate4);
     client.publish(topic_water, waterStr); // Mengirim data suhu ke broker MQTT
 
     // Kirim data suhu ke broker MQTT

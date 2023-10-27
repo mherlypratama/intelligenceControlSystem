@@ -5,8 +5,6 @@ Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 void setup()
 {
   Serial.begin(115200);
-  while (!Serial)
-    ;
 
   if (!mlx.begin())
   {

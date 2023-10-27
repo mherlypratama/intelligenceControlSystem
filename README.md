@@ -14,9 +14,9 @@
 
 ### Digital
 
-1. Sensor Suhu Air terhubung ke pin `22`
+1. Sensor Suhu Air terhubung ke pin `23`
 2. Sensor Wind Direction terhubung ke pin `0` dan `26`
-3. Sensor Anemometer terhubung ke pin `25` dan `21`
+3. Sensor Anemometer terhubung ke pin `25` dan `21--19`
 4. Sensor Waterflow terhubung ke pin `14`, `13`, `17`, dan `16`
 5. Sensor Berat terhubung ke pin `12`(sck) dan `4` (dt)
 6. Relay terhubung ke pin `19`, `23`, dan `18`
