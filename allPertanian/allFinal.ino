@@ -44,6 +44,7 @@ const char *mqtt_user = "unila";
 const char *mqtt_password = "pwdMQTT@123";
 
 const char *topic_utama = "ics/pertanian";
+const char *topic_kedua = "ics/pertanian2";
 const char *topic_bme = "bme/pertanian";
 const char *topic_soil = "soil/pertanian";
 const char *topic_weight = "weight/pertanian";
@@ -296,16 +297,24 @@ void nodered()
              "\"tempeBMP\": %.2f,"
              "\"press\": %.2f,"
              "\"alti\": %.2f,"
-             "\"Water_1\": %.2f,"
-             "\"Water_2\": %.2f,"
-             "\"Water_3\": %.2f,"
-             "\"Water_4\": %.2f,"
              "\"Berat\": %.2f"
              "}",
              phValue, (int)tdsValue, rainAccumulated, tempe, Angle, readWindSpeed(Address0), mlx1.readObjectTempC(), mlx2.readObjectTempC(),
              temp, Pressure, altitude, flowRate1, flowRate2, flowRate3, flowRate4, i);
 
     client.publish(topic_utama, utamaStr);
+
+    char waterStr[1000]; // Buffer untuk menyimpan JSON
+    snprintf(waterStr, sizeof(waterStr),
+             "{"
+             "\"Water_1\": %.2f,"
+             "\"Water_2\": %.2f,"
+             "\"Water_3\": %.2f,"
+             "\"Water_4\": %.2f"
+             "}",
+             flowRate1, flowRate2, flowRate3, flowRate4);
+
+    client.publish(topic_kedua, waterStr);
 
     // char phStr[10];
     // snprintf(phStr, sizeof(phStr), "%.2f", phValue); // Mengonversi nilai pH ke string
