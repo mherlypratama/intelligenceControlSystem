@@ -282,7 +282,7 @@ void loop()
 void nodered()
 {
     // Buat objek JSON yang berisi data dari keempat sensor
-    char utamaStr[10000]; // Buffer untuk menyimpan JSON
+    char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
              "\"ph\": %.2f,"
