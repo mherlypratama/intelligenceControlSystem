@@ -43,7 +43,7 @@ const int mqtt_port = 1883;
 const char *mqtt_user = "unila";
 const char *mqtt_password = "pwdMQTT@123";
 
-const char *topic_utama = "esp/pertanian";
+const char *topic_utama = "ics/pertanian";
 const char *topic_bme = "bme/pertanian";
 const char *topic_soil = "soil/pertanian";
 const char *topic_weight = "weight/pertanian";
@@ -85,7 +85,19 @@ DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
 #define CALIBRATE_ABSOLUTE_DIFFERENCE
 
 // Infra
-Adafruit_MLX90614 mlx = Adafruit_MLX90614();
+// TCA9548A I2C Multiplexer Address
+#define TCAADDR 0x70
+
+Adafruit_MLX90614 mlx1 = Adafruit_MLX90614(); // Objek untuk sensor pertama
+Adafruit_MLX90614 mlx2 = Adafruit_MLX90614(); // Objek untuk sensor kedua
+
+void selectTCAChannel(uint8_t channel)
+{
+    // Select the appropriate channel on TCA9548A
+    Wire.beginTransmission(TCAADDR);
+    Wire.write(1 << channel);
+    Wire.endTransmission();
+}
 
 // PH
 #include <OneWire.h>
@@ -270,7 +282,7 @@ void loop()
 void nodered()
 {
     // Buat objek JSON yang berisi data dari keempat sensor
-    char utamaStr[1000]; // Buffer untuk menyimpan JSON
+    char utamaStr[10000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
              "\"ph\": %.2f,"
@@ -279,7 +291,8 @@ void nodered()
              "\"tempDs\": %.2f,"
              "\"windDirection\": %.2f,"
              "\"anemo\": %.2f,"
-             "\"infra\": %.2f,"
+             "\"infra1\": %.2f,"
+             "\"infra2\": %.2f,"
              "\"tempeBMP\": %.2f,"
              "\"press\": %.2f,"
              "\"alti\": %.2f,"
@@ -289,8 +302,8 @@ void nodered()
              "\"Water_4\": %.2f,"
              "\"Berat\": %.2f"
              "}",
-             phValue, (int)tdsValue, rainAccumulated, tempe, Angle, readWindSpeed(Address0),
-             mlx.readObjectTempC(), temp, Pressure, altitude, flowRate1, flowRate2, flowRate3, flowRate4, i);
+             phValue, (int)tdsValue, rainAccumulated, tempe, Angle, readWindSpeed(Address0), mlx1.readObjectTempC(), mlx2.readObjectTempC(),
+             temp, Pressure, altitude, flowRate1, flowRate2, flowRate3, flowRate4, i);
 
     client.publish(topic_utama, utamaStr);
 
@@ -376,23 +389,50 @@ void reconnectMQTT()
 
 void setInfra()
 {
-    if (!mlx.begin())
+    Wire.begin(); // Initialize the I2C communication
+
+    // Configure TCA9548A channel (0 for the first sensor, 1 for the second sensor)
+    selectTCAChannel(0); // Choose the channel for the first sensor
+
+    if (!mlx1.begin())
     {
-        Serial.println("Error connecting to MLX sensor. Check wiring.");
+        Serial.println("Error connecting to MLX sensor 1. Check wiring.");
         while (1)
             ;
-    };
+    }
+
+    // Wait for a moment before switching to the second sensor
+    delay(500);
+
+    // Configure TCA9548A channel for the second sensor
+    selectTCAChannel(1); // Choose the channel for the second sensor
+
+    if (!mlx2.begin())
+    {
+        Serial.println("Error connecting to MLX sensor 2. Check wiring.");
+        while (1)
+            ;
+    }
 }
 
 void sensorInfra()
 {
-    Serial.print("Ambient temperature = ");
-    Serial.print(mlx.readAmbientTempC());
-    Serial.print("°C");
-    Serial.print("   ");
+    selectTCAChannel(0); // Select channel 0 (first sensor)
+    Serial.print("Sensor 1 - Ambient temperature = ");
+    Serial.print(mlx1.readAmbientTempC());
+    Serial.print("°C   ");
     Serial.print("Object temperature = ");
-    Serial.print(mlx.readObjectTempC());
+    Serial.print(mlx1.readObjectTempC());
     Serial.println("°C");
+
+    selectTCAChannel(1); // Select channel 1 (second sensor)
+    Serial.print("Sensor 2 - Ambient temperature = ");
+    Serial.print(mlx2.readAmbientTempC());
+    Serial.print("°C   ");
+    Serial.print("Object temperature = ");
+    Serial.print(mlx2.readObjectTempC());
+    Serial.println("°C");
+
     Serial.println("-----------------------------------------------------------------");
 }
 
@@ -698,7 +738,7 @@ void sensorwind()
     // Get 16 wind directions
     int Direction = windDirection.GetWindDirection(/*modbus slave address*/ Address);
     // Get 360° wind direction angle
-    float Angle = windDirection.GetWindAngle(/*modbus slave address*/ Address);
+    Angle = windDirection.GetWindAngle(/*modbus slave address*/ Address);
     Serial.println(Orientation[Direction]);
     Serial.print(Angle);
     Serial.println("°");
