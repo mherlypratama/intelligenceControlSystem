@@ -3,6 +3,7 @@
 ## Hardware
 
 1. Esp32 Wroom DFRobot
+2. Wifi gak bisa 5 GHz
 
 ## Pin Sensor
 

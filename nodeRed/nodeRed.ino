@@ -3,8 +3,8 @@
 #include <PubSubClient.h>
 
 // Konfigurasi jaringan Wi-Fi
-const char *ssid = "Modal";
-const char *password = "12345678";
+const char *ssid = "Lab Telkom 2.4 GHz";
+const char *password = "telkom ";
 
 // Konfigurasi server MQTT di VPS Anda
 const char *mqtt_server = "vps.isi-net.org";

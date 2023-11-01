@@ -110,7 +110,7 @@ DFRobot_ESP_PH ph;
 #define ESPADC 4096.0   // the esp Analog Digital Convertion value
 #define ESPVOLTAGE 3300 // the esp voltage supply value
 #define PH_PIN 35       // the esp gpio data pin number
-float voltage, phValue;
+float voltage, phValue, fix0, fix1, fix2, fix3;
 
 // Wind
 #include "RS485_Wind_Direction_Transmitter_V2.h"
@@ -310,9 +310,13 @@ void nodered()
              "\"Water_1\": %.2f,"
              "\"Water_2\": %.2f,"
              "\"Water_3\": %.2f,"
-             "\"Water_4\": %.2f"
+             "\"Water_3\": %.2f,"
+             "\"Soil_1\": %.2f,"
+             "\"Soil_2\": %.2f,"
+             "\"Soil_3\": %.2f,"
+             "\"Soil_4\": %.2f"
              "}",
-             flowRate1, flowRate2, flowRate3, flowRate4);
+             flowRate1, flowRate2, flowRate3, flowRate4, fix0, fix1, fix2, fix3);
 
     client.publish(topic_kedua, waterStr);
 
