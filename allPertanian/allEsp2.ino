@@ -17,8 +17,8 @@
 
 const int HX711_dout_1 = 17; // mcu > HX711 no 1 dout pin
 const int HX711_sck_1 = 16;  // mcu > HX711 no 1 sck pin
-const int HX711_dout_2 = 12; // mcu > HX711 no 2 dout pin
-const int HX711_sck_2 = 4;   // mcu > HX711 no 2 sck pin
+const int HX711_dout_2 = 4;  // mcu > HX711 no 2 dout pin
+const int HX711_sck_2 = 12;  // mcu > HX711 no 2 sck pin
 
 int Direction, jam, minute, second, tanggal, bulan, tahun;
 
@@ -321,93 +321,93 @@ void sensorBmp()
 // Lampu UV
 void relay11()
 {
-    digitalWrite(RELAY_PIN, LOW);
-    relay1 = 0;
-    delay(1000);
-    digitalWrite(RELAY_PIN, HIGH);
-    relay1 = 1;
+    // digitalWrite(RELAY_PIN, LOW);
+    // relay1 = 0;
+    // delay(1000);
+    // digitalWrite(RELAY_PIN, HIGH);
+    // relay1 = 1;
 
-    // struct tm timeinfo;
-    // if (!getLocalTime(&timeinfo))
-    // {
-    //     Serial.println("Failed to obtain time");
-    //     return;
-    // }
-    // // Extract the hour (0-23) from the struct tm
-    // int jam = timeinfo.tm_hour;
-    // int minute = timeinfo.tm_min;
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+        Serial.println("Failed to obtain time");
+        return;
+    }
+    // Extract the hour (0-23) from the struct tm
+    int jam = timeinfo.tm_hour;
+    int minute = timeinfo.tm_min;
 
-    // // Kontrol RELAY_PIN2
-    // if (jam >= 18 && jam < 6)
-    // {
-    //     digitalWrite(RELAY_PIN, LOW);
-    //     relay1 = 1;
-    // }
-    // else
-    // {
-    //     digitalWrite(RELAY_PIN, HIGH);
-    //     relay1 = 0;
-    // }
+    // Kontrol RELAY_PIN2
+    if (jam >= 18 && jam < 6)
+    {
+        digitalWrite(RELAY_PIN, HIGH);
+        relay1 = 1;
+    }
+    else
+    {
+        digitalWrite(RELAY_PIN, LOW);
+        relay1 = 0;
+    }
 }
 
 // Nutrisi
 void relay22()
 {
-    digitalWrite(RELAY_PIN2, LOW);
-    relay1 = 0;
-    delay(1000);
-    digitalWrite(RELAY_PIN2, HIGH);
-    relay1 = 1;
-    // struct tm timeinfo;
-    // if (!getLocalTime(&timeinfo))
-    // {
-    //     Serial.println("Failed to obtain time");
-    //     return;
-    // }
-    // // Extract the hour (0-23) from the struct tm
-    // int jam = timeinfo.tm_hour;
-    // int minute = timeinfo.tm_min;
+    // digitalWrite(RELAY_PIN2, LOW);
+    // relay1 = 0;
+    // delay(1000);
+    // digitalWrite(RELAY_PIN2, HIGH);
+    // relay1 = 1;
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+        Serial.println("Failed to obtain time");
+        return;
+    }
+    // Extract the hour (0-23) from the struct tm
+    int jam = timeinfo.tm_hour;
+    int minute = timeinfo.tm_min;
 
-    // // Kontrol RELAY_PIN22
-    // if (jam == 16 && minute >= 1 && minute < 16 || jam == 6 && minute >= 1 && minute < 16)
-    // {
-    //     digitalWrite(RELAY_PIN2, LOW);
-    //     relay2 = 1;
-    // }
-    // else
-    // {
-    //     digitalWrite(RELAY_PIN2, HIGH);
-    //     relay2 = 0;
-    // }
+    // Kontrol RELAY_PIN22
+    if (jam == 16 && minute >= 1 && minute < 16 || jam == 6 && minute >= 1 && minute < 16 || jam == 10 && minute >= 1 && minute < 16 || jam == 13 && minute >= 1 && minute < 16)
+    {
+        digitalWrite(RELAY_PIN2, HIGH);
+        relay2 = 1;
+    }
+    else
+    {
+        digitalWrite(RELAY_PIN2, LOW);
+        relay2 = 0;
+    }
 }
 
 // air pendingin
 void relay33()
 {
-    digitalWrite(RELAY_PIN3, LOW);
-    relay1 = 0;
-    delay(1000);
-    relay1 = 1;
-    digitalWrite(RELAY_PIN3, HIGH);
-    // struct tm timeinfo;
-    // if (!getLocalTime(&timeinfo))
-    // {
-    //     Serial.println("Failed to obtain time");
-    //     return;
-    // }
-    // // Extract the hour (0-23) from the struct tm
-    // int jam = timeinfo.tm_hour;
-    // int minute = timeinfo.tm_min;
+    // digitalWrite(RELAY_PIN3, LOW);
+    // relay1 = 0;
+    // delay(1000);
+    // relay1 = 1;
+    // digitalWrite(RELAY_PIN3, HIGH);
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+        Serial.println("Failed to obtain time");
+        return;
+    }
+    // Extract the hour (0-23) from the struct tm
+    int jam = timeinfo.tm_hour;
+    int minute = timeinfo.tm_min;
 
-    // // Kontrol RELAY_PIN2
-    // if (temperature > 28)
-    // {
-    //     digitalWrite(RELAY_PIN3, LOW);
-    //     relay3 = 1;
-    // }
-    // else
-    // {
-    //     digitalWrite(RELAY_PIN3, HIGH);
-    //     relay3 = 0;
-    // }
+    // Kontrol RELAY_PIN2
+    if (temperature > 28)
+    {
+        digitalWrite(RELAY_PIN3, HIGH);
+        relay3 = 1;
+    }
+    else
+    {
+        digitalWrite(RELAY_PIN3, LOW);
+        relay3 = 0;
+    }
 }
