@@ -11,14 +11,16 @@
 #endif
 
 // pins:
-#define RELAY_PIN 26
-#define RELAY_PIN2 0
-#define RELAY_PIN3 14
+#define RELAY_PIN 25
+#define RELAY_PIN2 26
+#define RELAY_PIN3 0
 
 const int HX711_dout_1 = 17; // mcu > HX711 no 1 dout pin
 const int HX711_sck_1 = 16;  // mcu > HX711 no 1 sck pin
 const int HX711_dout_2 = 12; // mcu > HX711 no 2 dout pin
 const int HX711_sck_2 = 4;   // mcu > HX711 no 2 sck pin
+
+int Direction, jam, minute, second, tanggal, bulan, tahun;
 
 // HX711 constructor (dout pin, sck pin)
 HX711_ADC LoadCell_1(HX711_dout_1, HX711_sck_1); // HX711 1
@@ -31,8 +33,8 @@ unsigned long t = 0;
 DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
 #define CALIBRATE_ABSOLUTE_DIFFERENCE
 
-const char *ssid = "Lab Telkom 2.4 GHz";
-const char *password = "telekomunikasi";
+const char *ssid = "pertanian24";
+const char *password = "luarbiasa";
 
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 21600;
@@ -44,7 +46,7 @@ const int mqtt_port = 1883;
 const char *mqtt_user = "unila";
 const char *mqtt_password = "pwdMQTT@123";
 
-const char *topic_ketiga = "ics/pertanian";
+const char *topic_ketiga = "ics/pertanian3";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -62,11 +64,9 @@ void setup()
     pinMode(RELAY_PIN, OUTPUT);
     pinMode(RELAY_PIN2, OUTPUT);
     pinMode(RELAY_PIN3, OUTPUT);
-    setBmp();
-    setBerat();
 
     // Connect to Wi-Fi
-    Serial.print("Connecting to ");
+    Serial.print("Menghubungkan ke WiFi...");
     Serial.println(ssid);
     WiFi.begin(ssid, password);
     while (WiFi.status() != WL_CONNECTED)
@@ -81,9 +81,8 @@ void setup()
     // Init and get the time
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
-    // disconnect WiFi as it's no longer needed
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_OFF);
+    setBerat();
+    setBmp();
 }
 
 void loop()
@@ -95,6 +94,7 @@ void loop()
     client.loop();
 
     nodered();
+    printLocalTime();
 
     sensorBmp();
     sensorBerat();
@@ -128,6 +128,7 @@ void nodered()
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
+             "\"TimeStamp\": %02d-%02d-%02d::%02d:%02d:%02d,"
              "\"temperatureBMP\": %.2f,"
              "\"pressure\": %.2f,"
              "\"berat_2\": %.2f,"
@@ -137,58 +138,31 @@ void nodered()
              "\"pompanutrisi\": %.2f,"
              "\"pompapendingin\": %.2f"
              "}",
-             temperature, Pressure, a, b, c, relay1, relay2, relay3);
+             tanggal, bulan, tahun, jam, minute, second, temperature, Pressure, a, b, c, relay1, relay2, relay3);
 
-    client.publish(topic_ketiga, utamaStr);
+    client.publish(topic_ketiga, utamaStr); // Mengirim data suhu ke broker MQTT
+}
 
-    // char phStr[10];
-    // snprintf(phStr, sizeof(phStr), "%.2f", phValue); // Mengonversi nilai pH ke string
-    // client.publish(topic_ph, phStr);                 // Mengirim data pH ke broker MQTT
+void printLocalTime()
+{
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+        Serial.println("Failed to obtain time");
+        return;
+    }
 
-    // // Kirim data TDS ke broker MQTT
-    // char tdsStr[10];
-    // snprintf(tdsStr, sizeof(tdsStr), "%d", (int)tdsValue); // Mengonversi nilai TDS ke string
-    // client.publish(topic_tds, tdsStr);                     // Mengirim data TDS ke broker MQTT
+    jam = timeinfo.tm_hour;
+    minute = timeinfo.tm_min;
+    second = timeinfo.tm_sec;
 
-    // // Kirim data sensor hujan ke broker MQTT
-    // char rainStr[10];
-    // snprintf(rainStr, sizeof(rainStr), "%.2f", rainAccumulated); // Mengonversi jumlah hujan ke string
-    // client.publish(topic_rain, rainStr);                         // Mengirim data hujan ke broker MQTT
+    tanggal = timeinfo.tm_mday;
+    bulan = timeinfo.tm_mon + 1;     // Bulan dimulai dari 0, sehingga Anda perlu menambahkan 1
+    tahun = 1900 + timeinfo.tm_year; // Tahun dimulai dari 1900
 
-    // // Kirim data suhu ke broker MQTT
-    // char tempStr[10];
-    // snprintf(tempStr, sizeof(tempStr), "%.2f", tempe); // Mengonversi nilai suhu ke string
-    // client.publish(topic_ds, tempStr);                 // Mengirim data suhu ke broker MQTT
-
-    // // Kirim data suhu ke broker MQTT
-    // char windStr[10];
-    // snprintf(windStr, sizeof(windStr), "%.2f", Angle); // Mengonversi nilai suhu ke string
-    // client.publish(topic_winddir, windStr);            // Mengirim data suhu ke broker MQTT
-
-    // // Kirim data suhu ke broker MQTT
-    // char anemStr[10];
-    // snprintf(anemStr, sizeof(anemStr), "%.2f", readWindSpeed(Address0)); // Mengonversi nilai suhu ke string
-    // client.publish(topic_wind, anemStr);                                 // Mengirim data suhu ke broker MQTT
-
-    // // Kirim data suhu ke broker MQTT
-    // char infraStr[10];
-    // snprintf(infraStr, sizeof(infraStr), "%.2f", mlx.readObjectTempC()); // Mengonversi nilai suhu ke string
-    // client.publish(topic_infra, infraStr);                               // Mengirim data suhu ke broker MQTT
-
-    // // Buat objek JSON yang berisi data dari keempat sensor
-    // char bmeStr[100]; // Buffer untuk menyimpan JSON
-    // snprintf(bmeStr, sizeof(bmeStr), "{\"Temperature\": %.2f, \"Preassure\": %.2f, \"Altitude\": %.2f}", temp, Pressure, altitude);
-    // client.publish(topic_bme, bmeStr);
-
-    // // Buat objek JSON yang berisi data dari keempat sensor
-    // char waterStr[100]; // Buffer untuk menyimpan JSON
-    // snprintf(waterStr, sizeof(waterStr), "{\"Water_1\": %.2f, \"Water_2\": %.2f, \"Water_3\": %.2f, \"Water_4\": %.2f}", flowRate1, flowRate2, flowRate3, flowRate4);
-    // client.publish(topic_water, waterStr);
-
-    // // Kirim data suhu ke broker MQTT
-    // char beratStr[10];
-    // snprintf(beratStr, sizeof(beratStr), "%.2f", i); // Mengonversi nilai suhu ke string
-    // client.publish(topic_weight, beratStr);          // Mengirim data suhu ke broker MQTT
+    char strftime_buf[50]; // Buffer untuk menyimpan timestamp yang diformat
+    strftime(strftime_buf, sizeof(strftime_buf), "%A, %d %B %Y %H:%M:%S", &timeinfo);
+    Serial.println(strftime_buf);
 }
 
 void setBerat()
@@ -347,77 +321,93 @@ void sensorBmp()
 // Lampu UV
 void relay11()
 {
-    struct tm timeinfo;
-    if (!getLocalTime(&timeinfo))
-    {
-        Serial.println("Failed to obtain time");
-        return;
-    }
-    // Extract the hour (0-23) from the struct tm
-    int jam = timeinfo.tm_hour;
-    int minute = timeinfo.tm_min;
+    digitalWrite(RELAY_PIN, LOW);
+    relay1 = 0;
+    delay(1000);
+    digitalWrite(RELAY_PIN, HIGH);
+    relay1 = 1;
 
-    // Kontrol RELAY_PIN2
-    if (jam >= 18 && jam < 6)
-    {
-        digitalWrite(RELAY_PIN, LOW);
-        relay1 = 1;
-    }
-    else
-    {
-        digitalWrite(RELAY_PIN, HIGH);
-        relay1 = 0;
-    }
+    // struct tm timeinfo;
+    // if (!getLocalTime(&timeinfo))
+    // {
+    //     Serial.println("Failed to obtain time");
+    //     return;
+    // }
+    // // Extract the hour (0-23) from the struct tm
+    // int jam = timeinfo.tm_hour;
+    // int minute = timeinfo.tm_min;
+
+    // // Kontrol RELAY_PIN2
+    // if (jam >= 18 && jam < 6)
+    // {
+    //     digitalWrite(RELAY_PIN, LOW);
+    //     relay1 = 1;
+    // }
+    // else
+    // {
+    //     digitalWrite(RELAY_PIN, HIGH);
+    //     relay1 = 0;
+    // }
 }
 
 // Nutrisi
 void relay22()
 {
-    struct tm timeinfo;
-    if (!getLocalTime(&timeinfo))
-    {
-        Serial.println("Failed to obtain time");
-        return;
-    }
-    // Extract the hour (0-23) from the struct tm
-    int jam = timeinfo.tm_hour;
-    int minute = timeinfo.tm_min;
+    digitalWrite(RELAY_PIN2, LOW);
+    relay1 = 0;
+    delay(1000);
+    digitalWrite(RELAY_PIN2, HIGH);
+    relay1 = 1;
+    // struct tm timeinfo;
+    // if (!getLocalTime(&timeinfo))
+    // {
+    //     Serial.println("Failed to obtain time");
+    //     return;
+    // }
+    // // Extract the hour (0-23) from the struct tm
+    // int jam = timeinfo.tm_hour;
+    // int minute = timeinfo.tm_min;
 
-    // Kontrol RELAY_PIN2
-    if (jam == 16 && minute >= 1 && minute < 16 || jam == 6 && minute >= 1 && minute < 16)
-    {
-        digitalWrite(RELAY_PIN2, LOW);
-        relay2 = 1;
-    }
-    else
-    {
-        digitalWrite(RELAY_PIN2, HIGH);
-        relay2 = 0;
-    }
+    // // Kontrol RELAY_PIN22
+    // if (jam == 16 && minute >= 1 && minute < 16 || jam == 6 && minute >= 1 && minute < 16)
+    // {
+    //     digitalWrite(RELAY_PIN2, LOW);
+    //     relay2 = 1;
+    // }
+    // else
+    // {
+    //     digitalWrite(RELAY_PIN2, HIGH);
+    //     relay2 = 0;
+    // }
 }
 
 // air pendingin
 void relay33()
 {
-    struct tm timeinfo;
-    if (!getLocalTime(&timeinfo))
-    {
-        Serial.println("Failed to obtain time");
-        return;
-    }
-    // Extract the hour (0-23) from the struct tm
-    int jam = timeinfo.tm_hour;
-    int minute = timeinfo.tm_min;
+    digitalWrite(RELAY_PIN3, LOW);
+    relay1 = 0;
+    delay(1000);
+    relay1 = 1;
+    digitalWrite(RELAY_PIN3, HIGH);
+    // struct tm timeinfo;
+    // if (!getLocalTime(&timeinfo))
+    // {
+    //     Serial.println("Failed to obtain time");
+    //     return;
+    // }
+    // // Extract the hour (0-23) from the struct tm
+    // int jam = timeinfo.tm_hour;
+    // int minute = timeinfo.tm_min;
 
-    // Kontrol RELAY_PIN2
-    if (temperature > 28)
-    {
-        digitalWrite(RELAY_PIN3, LOW);
-        relay3 = 1;
-    }
-    else
-    {
-        digitalWrite(RELAY_PIN3, HIGH);
-        relay3 = 0;
-    }
+    // // Kontrol RELAY_PIN2
+    // if (temperature > 28)
+    // {
+    //     digitalWrite(RELAY_PIN3, LOW);
+    //     relay3 = 1;
+    // }
+    // else
+    // {
+    //     digitalWrite(RELAY_PIN3, HIGH);
+    //     relay3 = 0;
+    // }
 }

@@ -36,14 +36,20 @@
 
 1. Anemometer terhubung ke pin `25` dan `26`
 2. Wind Direction terhubung ke pin `0` dan `14`
-3. Waterflow terhubung ke pin `13` dan `21`
-4. Weight Sensor terhubung ke pin (`22`, `19`), (`23`, `18`)
-5. Pyranometer terhubung ke pin (`17`, `16`)
-6. Relay terhubung ke pin
+3. Weight Sensor terhubung ke pin (`22`, `19`), (`23`, `18`), (`0`, `0`)
+4. Pyranometer terhubung ke pin (4 pin)
 
 ### I2c
 
 1. Infrared Sensor > TCA9548A
+
+## RaspberryPI
+
+1. Waterflow = 12 Buah
+2. BME
+3. DHT22
+4. Relay Lampu UV
+5. Soil Moisture
 
 ## Pyranometer
 

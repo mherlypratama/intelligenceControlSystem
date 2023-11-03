@@ -7,16 +7,25 @@
 #include <OneWire.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <Wire.h>
+#include <DFRobot_ADS1115.h>
+#include "time.h"
+#include <Wire.h>
+#include <Adafruit_MLX90614.h>
 
 // Konfigurasi jaringan Wi-Fi
-const char *ssid = "Lab Telkom 2.4 GHz";
-const char *password = "telekomunikasi";
+const char *ssid = "pertanian24";
+const char *password = "luarbiasa";
 
 // Konfigurasi server MQTT di VPS Anda
 const char *mqtt_server = "vps.isi-net.org";
 const int mqtt_port = 1883;
 const char *mqtt_user = "unila";
 const char *mqtt_password = "pwdMQTT@123";
+
+const char *ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = 21600;
+const int daylightOffset_sec = 3600;
 
 const char *topic_utama = "ics/pertanian";
 const char *topic_kedua = "ics/pertanian2";
@@ -39,12 +48,14 @@ RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1);
 WiFiClient espClient;
 PubSubClient client(espClient);
 
+DFRobot_ADS1115 ads(&Wire);
+
 unsigned long lastMsgTime = 0;
 const long Interval = 5000; // Kirim data setiap 5 detik
 
 // *******************PIN*******************
-SoftwareSerial mySerial2(16, 17); // Define the soft serial port, port 3 is TX, port 2 is RX,
-int DS18S20_Pin = 25;             // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
+SoftwareSerial mySerial2(25, 19); // Define the soft serial port, port 3 is TX, port 2 is RX,
+int DS18S20_Pin = 23;             // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
 const int rainSensorPin = 15;     // Pin GPIO yang terhubung ke sensor hujan
 #define PH_PIN 35                 // the esp gpio data pin number
 #define TdsSensorPin 34
@@ -55,14 +66,20 @@ const int rainSensorPin = 15;     // Pin GPIO yang terhubung ke sensor hujan
 const int HX711_dout = 4; // mcu > HX711 dout pin, must be external interrupt capable!
 const int HX711_sck = 12; // mcu > HX711 sck pin
 
+Adafruit_MLX90614 mlx1 = Adafruit_MLX90614(); // Objek untuk sensor pertama
+Adafruit_MLX90614 mlx2 = Adafruit_MLX90614(); // Objek untuk sensor kedua
+
 // **************Variable*********************
-int Direction;
-float Angle, temp, voltage, phValue, flowRate1, flowRate2, flowRate3, flowRate4, i;
+int Direction, jam, minute, second, tanggal, bulan, tahun;
+
+float Angle, temp, voltage, phValue, flowRate1, flowRate2, flowRate3, flowRate4, i, fix0, fix1, fix2, fix3, infra3;
+char strftime_buf[64];
 
 OneWire ds(DS18S20_Pin);
 
 uint8_t Address = 0x02;
 uint8_t Address0 = 0x10;
+#define TCAADDR 0x70
 
 HX711_ADC LoadCell(HX711_dout, HX711_sck);
 const int calVal_eepromAdress = 0;
@@ -100,6 +117,13 @@ byte pulse1Sec1, pulse1Sec2, pulse1Sec3, pulse1Sec4;
 unsigned int flowMilliLitres1, flowMilliLitres2, flowMilliLitres3, flowMilliLitres4;
 unsigned long totalMilliLitres1, totalMilliLitres2, totalMilliLitres3, totalMilliLitres4;
 
+void selectTCAChannel(uint8_t channel)
+{
+    // Select the appropriate channel on TCA9548A
+    Wire.beginTransmission(TCAADDR);
+    Wire.write(1 << channel);
+    Wire.endTransmission();
+}
 void IRAM_ATTR pulseCounter1()
 {
     pulseCount1++;
@@ -129,6 +153,10 @@ void setup()
     Serial.begin(9600);
     setupWiFi();
     client.setServer(mqtt_server, mqtt_port);
+    // Init and get the time
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    printLocalTime();
+
     setwind();
     setAnemo();
     setDS();
@@ -136,6 +164,8 @@ void setup()
     setTds();
     setWater();
     setBerat();
+    setSoil();
+    setInfra();
 }
 
 void loop()
@@ -147,23 +177,44 @@ void loop()
     client.loop();
 
     nodered();
-
-    delay(1000);
+    printLocalTime();
     sensorwind();
     sensorAnemo();
     sensorDS();
     sensorPH();
     sensorTds();
     sensorWater();
+    sensorSoil();
     sensorBerat();
+    sensorInfra();
 }
 
 void nodered()
 {
+
     // Buat objek JSON yang berisi data dari keempat sensor
+    // char utamaStr[1000]; // Buffer untuk menyimpan JSON
+    // snprintf(utamaStr, sizeof(utamaStr),
+    //          "{"
+    //          "\"TimeStamp\": %02d-%02d-%d,%02d:%02d:%02d"
+    //          "\"ph\": %.2f,"
+    //          "\"tds\": %.2f,"
+    //          "\"rain\": %.2f,"
+    //          "\"tempDs\": %.2f,"
+    //          "\"windDirection\": %.2f,"
+    //          "\"anemo\": %.2f,"
+    //          "\"infra1\": %.2f,"
+    //          "\"infra2\": %.2f,"
+    //          "\"infra3\": %.2f,"
+    //          "\"Berat_1\": %.2f"
+    //          "}",
+    //          tanggal, bulan, tahun, jam, minute, second, phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), mlx1.readObjectTempC(), mlx2.readObjectTempC(), infra3, i);
+    // client.publish(topic_utama, utamaStr);
+
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
+             "\"TimeStamp\": %02d-%02d-%02d::%02d:%02d:%02d,"
              "\"ph\": %.2f,"
              "\"tds\": %.2f,"
              "\"rain\": %.2f,"
@@ -172,14 +223,12 @@ void nodered()
              "\"anemo\": %.2f,"
              //  "\"infra1\": %.2f,"
              //  "\"infra2\": %.2f,"
-             //  "\"tempeBMP\": %.2f,"
-             //  "\"press\": %.2f,"
-             //  "\"alti\": %.2f,"
-             "\"Berat\": %.2f"
+             //  "\"infra3\": %.2f,"
+             "\"Berat_1\": %.2f"
              "}",
-             phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), i);
-    // mlx1.readObjectTempC()
+             tanggal, bulan, tahun, jam, minute, second, phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), i);
     client.publish(topic_utama, utamaStr);
+    // mlx1.readObjectTempC(), mlx2.readObjectTempC(), mlx3.readObjectTempC()
 
     char waterStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(waterStr, sizeof(waterStr),
@@ -187,13 +236,13 @@ void nodered()
              "\"Water_1\": %.2f,"
              "\"Water_2\": %.2f,"
              "\"Water_3\": %.2f,"
-             "\"Water_3\": %.2f"
-             //  "\"Soil_1\": %.2f,"
-             //  "\"Soil_2\": %.2f,"
-             //  "\"Soil_3\": %.2f,"
-             //  "\"Soil_4\": %.2f"
+             "\"Water_4\": %.2f,"
+             "\"Soil_1\": %.2f,"
+             "\"Soil_2\": %.2f,"
+             "\"Soil_3\": %.2f,"
+             "\"Soil_4\": %.2f"
              "}",
-             flowRate1, flowRate2, flowRate3, flowRate4);
+             flowRate1, flowRate2, flowRate3, flowRate4, fix0, fix1, fix2, fix3);
 
     client.publish(topic_kedua, waterStr);
 }
@@ -226,6 +275,131 @@ void reconnectMQTT()
             delay(5000);
         }
     }
+}
+
+void printLocalTime()
+{
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+        Serial.println("Failed to obtain time");
+        return;
+    }
+
+    jam = timeinfo.tm_hour;
+    minute = timeinfo.tm_min;
+    second = timeinfo.tm_sec;
+
+    tanggal = timeinfo.tm_mday;
+    bulan = timeinfo.tm_mon + 1;     // Bulan dimulai dari 0, sehingga Anda perlu menambahkan 1
+    tahun = 1900 + timeinfo.tm_year; // Tahun dimulai dari 1900
+
+    char strftime_buf[50]; // Buffer untuk menyimpan timestamp yang diformat
+    strftime(strftime_buf, sizeof(strftime_buf), "%A, %d %B %Y %H:%M:%S", &timeinfo);
+    Serial.println(strftime_buf);
+}
+
+void setInfra()
+{
+    Wire.begin(); // Initialize the I2C communication
+
+    // Configure TCA9548A channel (0 for the first sensor, 1 for the second sensor)
+    selectTCAChannel(0); // Choose the channel for the first sensor
+
+    if (!mlx1.begin())
+    {
+        Serial.println("Error connecting to MLX sensor 1. Check wiring.");
+        while (1)
+            ;
+    }
+
+    // Wait for a moment before switching to the second sensor
+    delay(1000);
+
+    // Configure TCA9548A channel for the second sensor
+    selectTCAChannel(1); // Choose the channel for the second sensor
+
+    if (!mlx2.begin())
+    {
+        Serial.println("Error connecting to MLX sensor 2. Check wiring.");
+        while (1)
+            ;
+    }
+}
+
+void sensorInfra()
+{
+    selectTCAChannel(0); // Select channel 0 (first sensor)
+    Serial.print("Sensor 1 - Ambient temperature = ");
+    Serial.print(mlx1.readAmbientTempC());
+    Serial.print("°C   ");
+    Serial.print("Object temperature = ");
+    Serial.print(mlx1.readObjectTempC());
+    Serial.println("°C");
+
+    selectTCAChannel(1); // Select channel 1 (second sensor)
+    Serial.print("Sensor 2 - Ambient temperature = ");
+    Serial.print(mlx2.readAmbientTempC());
+    Serial.print("°C   ");
+    Serial.print("Object temperature = ");
+    Serial.print(mlx2.readObjectTempC());
+    Serial.println("°C");
+
+    infra3 = (mlx1.readObjectTempC() + mlx2.readObjectTempC()) / 2;
+
+    Serial.println("-----------------------------------------------------------------");
+}
+
+void setSoil()
+{
+    ads.setAddr_ADS1115(ADS1115_IIC_ADDRESS1); // 0x48
+    ads.setGain(eGAIN_TWOTHIRDS);              // 2/3x gain
+    ads.setMode(eMODE_SINGLE);                 // single-shot mode
+    ads.setRate(eRATE_128);                    // 128SPS (default)
+    ads.setOSMode(eOSMODE_SINGLE);             // Set to start a single-conversion
+    ads.init();
+}
+
+void sensorSoil()
+{
+    if (ads.checkADS1115())
+    {
+        int16_t adc0, adc1, adc2, adc3;
+
+        adc0 = ads.readVoltage(0);
+        adc1 = ads.readVoltage(1);
+        adc2 = ads.readVoltage(2);
+        adc3 = ads.readVoltage(3);
+
+        float datakonversi0 = ((adc0 - 10540) / (19941 - 10540)) * 100;
+        float datakonversi1 = ((adc1 - 10540) / (19941 - 10540)) * 100;
+        float datakonversi2 = ((adc2 - 10540) / (19941 - 10540)) * 100;
+        float datakonversi3 = ((adc3 - 10540) / (19941 - 10540)) * 100;
+
+        fix0 = 100 - datakonversi0;
+        fix1 = 100 - datakonversi1;
+        fix2 = 100 - datakonversi2;
+        fix3 = 100 - datakonversi3;
+
+        Serial.print("A0:");
+        Serial.print(fix0);
+        Serial.print("%,  ");
+        Serial.print("A1:");
+        Serial.print(fix1);
+        Serial.print("%,  ");
+        Serial.print("A2:");
+        Serial.print(fix2);
+        Serial.print("%,  ");
+        Serial.print("A3:");
+        Serial.print(fix3);
+        Serial.println("%");
+    }
+    else
+    {
+        Serial.println("ADS1115 Disconnected!");
+    }
+
+    delay(1000);
 }
 
 void setBerat()
