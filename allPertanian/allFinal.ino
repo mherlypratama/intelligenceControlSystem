@@ -192,47 +192,47 @@ void loop()
 void nodered()
 {
 
-    // Buat objek JSON yang berisi data dari keempat sensor
-    // char utamaStr[1000]; // Buffer untuk menyimpan JSON
-    // snprintf(utamaStr, sizeof(utamaStr),
-    //          "{"
-    //          "\"TimeStamp\": %02d-%02d-%d,%02d:%02d:%02d"
-    //          "\"ph\": %.2f,"
-    //          "\"tds\": %.2f,"
-    //          "\"rain\": %.2f,"
-    //          "\"tempDs\": %.2f,"
-    //          "\"windDirection\": %.2f,"
-    //          "\"anemo\": %.2f,"
-    //          "\"infra1\": %.2f,"
-    //          "\"infra2\": %.2f,"
-    //          "\"infra3\": %.2f,"
-    //          "\"Berat_1\": %.2f"
-    //          "}",
-    //          tanggal, bulan, tahun, jam, minute, second, phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), mlx1.readObjectTempC(), mlx2.readObjectTempC(), infra3, i);
-    // client.publish(topic_utama, utamaStr);
-
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
-             "\"TimeStamp\": %02d-%02d-%02d::%02d:%02d:%02d,"
+             "\"TimeStamp\": %02d-%02d-%d,%02d:%02d:%02d,"
              "\"ph\": %.2f,"
              "\"tds\": %.2f,"
              "\"rain\": %.2f,"
              "\"tempDs\": %.2f,"
              "\"windDirection\": %.2f,"
              "\"anemo\": %.2f,"
-             //  "\"infra1\": %.2f,"
-             //  "\"infra2\": %.2f,"
-             //  "\"infra3\": %.2f,"
+             "\"infra1\": %.2f,"
+             "\"infra2\": %.2f,"
+             "\"infra3\": %.2f,"
              "\"Berat_1\": %.2f"
              "}",
-             tanggal, bulan, tahun, jam, minute, second, phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), i);
+             tanggal, bulan, tahun, jam, minute, second, phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), mlx1.readObjectTempC(), mlx2.readObjectTempC(), infra3, i);
     client.publish(topic_utama, utamaStr);
+
+    // char utamaStr[1000]; // Buffer untuk menyimpan JSON
+    // snprintf(utamaStr, sizeof(utamaStr),
+    //          "{"
+    //          "\"TimeStamp\": %02d-%02d-%02d::%02d:%02d:%02d,"
+    //          "\"ph\": %.2f,"
+    //          "\"tds\": %.2f,"
+    //          "\"rain\": %.2f,"
+    //          "\"tempDs\": %.2f,"
+    //          "\"windDirection\": %.2f,"
+    //          "\"anemo\": %.2f,"
+    //          //  "\"infra1\": %.2f,"
+    //          //  "\"infra2\": %.2f,"
+    //          //  "\"infra3\": %.2f,"
+    //          "\"Berat_1\": %.2f"
+    //          "}",
+    //          tanggal, bulan, tahun, jam, minute, second, phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), i);
+    // client.publish(topic_utama, utamaStr);
     // mlx1.readObjectTempC(), mlx2.readObjectTempC(), mlx3.readObjectTempC()
 
     char waterStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(waterStr, sizeof(waterStr),
              "{"
+             "\"TimeStamp\": %02d-%02d-%d,%02d:%02d:%02d,"
              "\"Water_1\": %.2f,"
              "\"Water_2\": %.2f,"
              "\"Water_3\": %.2f,"
@@ -242,7 +242,7 @@ void nodered()
              "\"Soil_3\": %.2f,"
              "\"Soil_4\": %.2f"
              "}",
-             flowRate1, flowRate2, flowRate3, flowRate4, fix0, fix1, fix2, fix3);
+             tanggal, bulan, tahun, jam, minute, second, flowRate1, flowRate2, flowRate3, flowRate4, fix0, fix1, fix2, fix3);
 
     client.publish(topic_kedua, waterStr);
 }
