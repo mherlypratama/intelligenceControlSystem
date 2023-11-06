@@ -11,14 +11,14 @@
 #endif
 
 // pins:
-#define RELAY_PIN 26
-#define RELAY_PIN2 0
-#define RELAY_PIN3 14
+#define RELAY_PIN 17
+#define RELAY_PIN2 18
+#define RELAY_PIN3 20
 
-const int HX711_dout_1 = 17; // mcu > HX711 no 1 dout pin
-const int HX711_sck_1 = 16;  // mcu > HX711 no 1 sck pin
-const int HX711_dout_2 = 4;  // mcu > HX711 no 2 dout pin
-const int HX711_sck_2 = 12;  // mcu > HX711 no 2 sck pin
+const int HX711_dout_1 = 35; // mcu > HX711 no 1 dout pin
+const int HX711_sck_1 = 34;  // mcu > HX711 no 1 sck pin
+const int HX711_dout_2 = 24; // mcu > HX711 no 2 dout pin
+const int HX711_sck_2 = 22;  // mcu > HX711 no 2 sck pin
 
 int Direction, jam, minute, second, tanggal, bulan, tahun;
 
