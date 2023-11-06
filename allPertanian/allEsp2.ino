@@ -11,9 +11,9 @@
 #endif
 
 // pins:
-#define RELAY_PIN 25
-#define RELAY_PIN2 26
-#define RELAY_PIN3 0
+#define RELAY_PIN 26
+#define RELAY_PIN2 0
+#define RELAY_PIN3 14
 
 const int HX711_dout_1 = 17; // mcu > HX711 no 1 dout pin
 const int HX711_sck_1 = 16;  // mcu > HX711 no 1 sck pin
@@ -37,7 +37,7 @@ const char *ssid = "pertanian24";
 const char *password = "luarbiasa";
 
 const char *ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 21600;
+const long gmtOffset_sec = 25200;
 const int daylightOffset_sec = 3600;
 
 // Konfigurasi server MQTT di VPS Anda
@@ -93,7 +93,6 @@ void loop()
     }
     client.loop();
 
-    nodered();
     printLocalTime();
 
     sensorBmp();
@@ -101,6 +100,7 @@ void loop()
     relay11(); // Untuk Lampu UV
     relay22();
     relay33();
+    nodered();
     delay(1000);
 }
 
@@ -124,6 +124,7 @@ void reconnectMQTT()
 
 void nodered()
 {
+
     // Buat objek JSON yang berisi data dari keempat sensor
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
@@ -134,9 +135,9 @@ void nodered()
              "\"berat_2\": %.2f,"
              "\"berat_3\": %.2f,"
              "\"berat_4\": %.2f,"
-             "\"lampu_uv\": %.2f,"
-             "\"pompanutrisi\": %.2f,"
-             "\"pompapendingin\": %.2f"
+             "\"lampu_uv\": %.02d,"
+             "\"pompanutrisi\": %.02d,"
+             "\"pompapendingin\": %.02d"
              "}",
              tanggal, bulan, tahun, jam, minute, second, temperature, Pressure, a, b, c, relay1, relay2, relay3);
 
@@ -334,19 +335,22 @@ void relay11()
         return;
     }
     // Extract the hour (0-23) from the struct tm
-    int jam = timeinfo.tm_hour;
-    int minute = timeinfo.tm_min;
+    jam = timeinfo.tm_hour;
+    minute = timeinfo.tm_min;
 
     // Kontrol RELAY_PIN2
-    if (jam >= 18 && jam < 6)
+    if (jam >= 18 && jam < 23 || jam >= 0 && jam < 6)
     {
         digitalWrite(RELAY_PIN, HIGH);
         relay1 = 1;
+        Serial.print("Relay 1: ");
+        Serial.println(relay1);
     }
     else
     {
         digitalWrite(RELAY_PIN, LOW);
         relay1 = 0;
+        Serial.println(relay1);
     }
 }
 
@@ -373,11 +377,13 @@ void relay22()
     {
         digitalWrite(RELAY_PIN2, HIGH);
         relay2 = 1;
+        Serial.println(relay2);
     }
     else
     {
         digitalWrite(RELAY_PIN2, LOW);
         relay2 = 0;
+        Serial.println(relay2);
     }
 }
 
@@ -404,10 +410,12 @@ void relay33()
     {
         digitalWrite(RELAY_PIN3, HIGH);
         relay3 = 1;
+        Serial.println(relay3);
     }
     else
     {
         digitalWrite(RELAY_PIN3, LOW);
         relay3 = 0;
+        Serial.println(relay3);
     }
 }

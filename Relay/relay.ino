@@ -1,4 +1,4 @@
-#define RELAY_PIN 16 // ESP32 pin GPIO16 connected to the IN pin of relay
+#define RELAY_PIN 26 // ESP32 pin GPIO16 connected to the IN pin of relay
 
 // the setup function runs once when you press reset or power the board
 void setup()
@@ -11,7 +11,7 @@ void setup()
 void loop()
 {
     digitalWrite(RELAY_PIN, HIGH);
-    delay(1000);
+    delay(3000);
     digitalWrite(RELAY_PIN, LOW);
-    delay(1000);
+    delay(5000);
 }

@@ -14,8 +14,8 @@
 #include <Adafruit_MLX90614.h>
 
 // Konfigurasi jaringan Wi-Fi
-const char *ssid = "pertanian24";
-const char *password = "luarbiasa";
+const char *ssid = "Lab Telkom 2.4 GHz";
+const char *password = "telekomunikasi";
 
 // Konfigurasi server MQTT di VPS Anda
 const char *mqtt_server = "vps.isi-net.org";
@@ -24,7 +24,7 @@ const char *mqtt_user = "unila";
 const char *mqtt_password = "pwdMQTT@123";
 
 const char *ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 21600;
+const long gmtOffset_sec = 25200;
 const int daylightOffset_sec = 3600;
 
 const char *topic_utama = "ics/pertanian";
@@ -163,7 +163,7 @@ void setup()
     setPH();
     setTds();
     setWater();
-    setBerat();
+    // setBerat();
     setSoil();
     setInfra();
 }
@@ -185,48 +185,48 @@ void loop()
     sensorTds();
     sensorWater();
     sensorSoil();
-    sensorBerat();
-    sensorInfra();
+    // sensorBerat();
+    // sensorInfra();
 }
 
 void nodered()
 {
 
-    char utamaStr[1000]; // Buffer untuk menyimpan JSON
-    snprintf(utamaStr, sizeof(utamaStr),
-             "{"
-             "\"TimeStamp\": %02d-%02d-%d,%02d:%02d:%02d,"
-             "\"ph\": %.2f,"
-             "\"tds\": %.2f,"
-             "\"rain\": %.2f,"
-             "\"tempDs\": %.2f,"
-             "\"windDirection\": %.2f,"
-             "\"anemo\": %.2f,"
-             "\"infra1\": %.2f,"
-             "\"infra2\": %.2f,"
-             "\"infra3\": %.2f,"
-             "\"Berat_1\": %.2f"
-             "}",
-             tanggal, bulan, tahun, jam, minute, second, phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), mlx1.readObjectTempC(), mlx2.readObjectTempC(), infra3, i);
-    client.publish(topic_utama, utamaStr);
-
     // char utamaStr[1000]; // Buffer untuk menyimpan JSON
     // snprintf(utamaStr, sizeof(utamaStr),
     //          "{"
-    //          "\"TimeStamp\": %02d-%02d-%02d::%02d:%02d:%02d,"
+    //          "\"TimeStamp\": %02d-%02d-%d,%02d:%02d:%02d,"
     //          "\"ph\": %.2f,"
     //          "\"tds\": %.2f,"
     //          "\"rain\": %.2f,"
     //          "\"tempDs\": %.2f,"
     //          "\"windDirection\": %.2f,"
     //          "\"anemo\": %.2f,"
-    //          //  "\"infra1\": %.2f,"
-    //          //  "\"infra2\": %.2f,"
-    //          //  "\"infra3\": %.2f,"
+    //          "\"infra1\": %.2f,"
+    //          "\"infra2\": %.2f,"
+    //          "\"infra3\": %.2f,"
     //          "\"Berat_1\": %.2f"
     //          "}",
-    //          tanggal, bulan, tahun, jam, minute, second, phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), i);
+    //          tanggal, bulan, tahun, jam, minute, second, phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), mlx1.readObjectTempC(), mlx2.readObjectTempC(), infra3, i);
     // client.publish(topic_utama, utamaStr);
+
+    char utamaStr[1000]; // Buffer untuk menyimpan JSON
+    snprintf(utamaStr, sizeof(utamaStr),
+             "{"
+             "\"TimeStamp\": %02d-%02d-%02d::%02d:%02d:%02d,"
+             "\"ph\": %.2f,"
+             "\"tds\": %.2f,"
+             "\"rain\": %.2f,"
+             "\"tempDs\": %.2f,"
+             "\"windDirection\": %.2f,"
+             "\"anemo\": %.2f,"
+             //  "\"infra1\": %.2f,"
+             //  "\"infra2\": %.2f,"
+             //  "\"infra3\": %.2f,"
+             "\"Berat_1\": %.2f"
+             "}",
+             tanggal, bulan, tahun, jam, minute, second, phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), i);
+    client.publish(topic_utama, utamaStr);
     // mlx1.readObjectTempC(), mlx2.readObjectTempC(), mlx3.readObjectTempC()
 
     char waterStr[1000]; // Buffer untuk menyimpan JSON
@@ -301,54 +301,54 @@ void printLocalTime()
 
 void setInfra()
 {
-    Wire.begin(); // Initialize the I2C communication
+    // Wire.begin(); // Initialize the I2C communication
+    // Wire.setClock(1000);
+    // // Configure TCA9548A channel (0 for the first sensor, 1 for the second sensor)
+    // selectTCAChannel(0); // Choose the channel for the first sensor
 
-    // Configure TCA9548A channel (0 for the first sensor, 1 for the second sensor)
-    selectTCAChannel(0); // Choose the channel for the first sensor
+    // if (!mlx1.begin())
+    // {
+    //     Serial.println("Error connecting to MLX sensor 1. Check wiring.");
+    //     while (1)
+    //         ;
+    // }
 
-    if (!mlx1.begin())
-    {
-        Serial.println("Error connecting to MLX sensor 1. Check wiring.");
-        while (1)
-            ;
-    }
+    // // Wait for a moment before switching to the second sensor
+    // delay(1000);
 
-    // Wait for a moment before switching to the second sensor
-    delay(1000);
+    // // Configure TCA9548A channel for the second sensor
+    // selectTCAChannel(1); // Choose the channel for the second sensor
 
-    // Configure TCA9548A channel for the second sensor
-    selectTCAChannel(1); // Choose the channel for the second sensor
-
-    if (!mlx2.begin())
-    {
-        Serial.println("Error connecting to MLX sensor 2. Check wiring.");
-        while (1)
-            ;
-    }
+    // if (!mlx2.begin())
+    // {
+    //     Serial.println("Error connecting to MLX sensor 2. Check wiring.");
+    //     while (1)
+    //         ;
+    // }
 }
 
-void sensorInfra()
-{
-    selectTCAChannel(0); // Select channel 0 (first sensor)
-    Serial.print("Sensor 1 - Ambient temperature = ");
-    Serial.print(mlx1.readAmbientTempC());
-    Serial.print("°C   ");
-    Serial.print("Object temperature = ");
-    Serial.print(mlx1.readObjectTempC());
-    Serial.println("°C");
+// void sensorInfra()
+// {
+//     selectTCAChannel(0); // Select channel 0 (first sensor)
+//     Serial.print("Sensor 1 - Ambient temperature = ");
+//     Serial.print(mlx1.readAmbientTempC());
+//     Serial.print("°C   ");
+//     Serial.print("Object temperature = ");
+//     Serial.print(mlx1.readObjectTempC());
+//     Serial.println("°C");
 
-    selectTCAChannel(1); // Select channel 1 (second sensor)
-    Serial.print("Sensor 2 - Ambient temperature = ");
-    Serial.print(mlx2.readAmbientTempC());
-    Serial.print("°C   ");
-    Serial.print("Object temperature = ");
-    Serial.print(mlx2.readObjectTempC());
-    Serial.println("°C");
+//     selectTCAChannel(1); // Select channel 1 (second sensor)
+//     Serial.print("Sensor 2 - Ambient temperature = ");
+//     Serial.print(mlx2.readAmbientTempC());
+//     Serial.print("°C   ");
+//     Serial.print("Object temperature = ");
+//     Serial.print(mlx2.readObjectTempC());
+//     Serial.println("°C");
 
-    infra3 = (mlx1.readObjectTempC() + mlx2.readObjectTempC()) / 2;
+//     infra3 = (mlx1.readObjectTempC() + mlx2.readObjectTempC()) / 2;
 
-    Serial.println("-----------------------------------------------------------------");
-}
+//     Serial.println("-----------------------------------------------------------------");
+// }
 
 void setSoil()
 {
