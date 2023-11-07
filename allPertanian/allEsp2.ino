@@ -341,14 +341,14 @@ void relay11()
     // Kontrol RELAY_PIN2
     if (jam >= 18 && jam < 23 || jam >= 0 && jam < 6)
     {
-        digitalWrite(RELAY_PIN, HIGH);
+        digitalWrite(RELAY_PIN, LOW);
         relay1 = 1;
         Serial.print("Relay 1: ");
         Serial.println(relay1);
     }
     else
     {
-        digitalWrite(RELAY_PIN, LOW);
+        digitalWrite(RELAY_PIN, HIGH);
         relay1 = 0;
         Serial.println(relay1);
     }
@@ -375,13 +375,13 @@ void relay22()
     // Kontrol RELAY_PIN22
     if (jam == 16 && minute >= 1 && minute < 16 || jam == 6 && minute >= 1 && minute < 16 || jam == 10 && minute >= 1 && minute < 16 || jam == 13 && minute >= 1 && minute < 16)
     {
-        digitalWrite(RELAY_PIN2, HIGH);
+        digitalWrite(RELAY_PIN2, LOW);
         relay2 = 1;
         Serial.println(relay2);
     }
     else
     {
-        digitalWrite(RELAY_PIN2, LOW);
+        digitalWrite(RELAY_PIN2, HIGH);
         relay2 = 0;
         Serial.println(relay2);
     }
@@ -408,13 +408,13 @@ void relay33()
     // Kontrol RELAY_PIN2
     if (temperature > 28)
     {
-        digitalWrite(RELAY_PIN3, HIGH);
+        digitalWrite(RELAY_PIN3, LOW);
         relay3 = 1;
         Serial.println(relay3);
     }
     else
     {
-        digitalWrite(RELAY_PIN3, LOW);
+        digitalWrite(RELAY_PIN3, HIGH);
         relay3 = 0;
         Serial.println(relay3);
     }
