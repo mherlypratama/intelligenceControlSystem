@@ -11,14 +11,14 @@
 #endif
 
 // pins:
-#define RELAY_PIN 17
-#define RELAY_PIN2 18
-#define RELAY_PIN3 20
+#define RELAY_PIN 14
+#define RELAY_PIN2 12
+#define RELAY_PIN3 13
 
-const int HX711_dout_1 = 35; // mcu > HX711 no 1 dout pin
-const int HX711_sck_1 = 34;  // mcu > HX711 no 1 sck pin
-const int HX711_dout_2 = 24; // mcu > HX711 no 2 dout pin
-const int HX711_sck_2 = 22;  // mcu > HX711 no 2 sck pin
+const int HX711_dout_1 = 18; // mcu > HX711 no 1 dout pin
+const int HX711_sck_1 = 5;   // mcu > HX711 no 1 sck pin
+const int HX711_dout_2 = 4;  // mcu > HX711 no 2 dout pin
+const int HX711_sck_2 = 2;   // mcu > HX711 no 2 sck pin
 
 int Direction, jam, minute, second, tanggal, bulan, tahun;
 
@@ -231,7 +231,7 @@ void sensorBerat()
             Serial.print(a);
             Serial.print("    Load_cell 2 output val: ");
             Serial.println(b);
-            c = b;
+            c = (a + b) / 2;
             newDataReady = 0;
             t = millis();
         }

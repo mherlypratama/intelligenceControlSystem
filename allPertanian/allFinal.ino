@@ -14,8 +14,8 @@
 #include <Adafruit_MLX90614.h>
 
 // Konfigurasi jaringan Wi-Fi
-const char *ssid = "Lab Telkom 2.4 GHz";
-const char *password = "telekomunikasi";
+const char *ssid = "pertanian24";
+const char *password = "luarbiasa";
 
 // Konfigurasi server MQTT di VPS Anda
 const char *mqtt_server = "vps.isi-net.org";
