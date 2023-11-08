@@ -232,7 +232,7 @@ void nodered()
     char waterStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(waterStr, sizeof(waterStr),
              "{"
-             "\"TimeStamp\": %02d-%02d-%d,%02d:%02d:%02d,"
+             "\"TimeStamp\": %2d-%2d-%d,%2d:%2d:%2d,"
              "\"Water_1\": %.2f,"
              "\"Water_2\": %.2f,"
              "\"Water_3\": %.2f,"
