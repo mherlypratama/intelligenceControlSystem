@@ -7,10 +7,10 @@
    @param tx - UART Pin for transmitting data
 */
 #if defined(ARDUINO_AVR_UNO) || defined(ESP8266) // Use softserial
-SoftwareSerial softSerial(/*rx =*/26, /*tx =*/25);
+SoftwareSerial softSerial(/*rx =*/0, /*tx =*/26);
 RS485_Wind_Direction_Transmitter_V2 windDirection(/*softSerial =*/&softSerial);
 #elif defined(ESP32) // Use the hardserial of remappable pin: Serial1
-RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1, /*rx =*/26, /*tx =*/25);
+RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1, /*rx =*/0, /*tx =*/26);
 #else                // Use hardserial: Serial1
 RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1);
 #endif
