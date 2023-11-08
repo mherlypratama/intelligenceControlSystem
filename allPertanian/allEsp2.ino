@@ -129,15 +129,15 @@ void nodered()
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
-             "\"TimeStamp\": %02d-%02d-%02d::%02d:%02d:%02d,"
+             "\"TimeStamp\": %2d-%2d-%2d::%2d:%2d:%2d,"
              "\"temperatureBMP\": %.2f,"
              "\"pressure\": %.2f,"
              "\"berat_2\": %.2f,"
              "\"berat_3\": %.2f,"
              "\"berat_4\": %.2f,"
-             "\"lampu_uv\": %.02d,"
-             "\"pompanutrisi\": %.02d,"
-             "\"pompapendingin\": %.02d"
+             "\"lampu_uv\": %.2d,"
+             "\"pompanutrisi\": %.2d,"
+             "\"pompapendingin\": %.2d"
              "}",
              tanggal, bulan, tahun, jam, minute, second, temperature, Pressure, a, b, c, relay1, relay2, relay3);
 

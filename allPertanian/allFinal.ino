@@ -213,7 +213,7 @@ void nodered()
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
-             "\"TimeStamp\": %02d-%02d-%02d::%02d:%02d:%02d,"
+             "\"TimeStamp\": %2d-%2d-%2d::%2d:%2d:%2d,"
              "\"ph\": %.2f,"
              "\"tds\": %.2f,"
              "\"rain\": %.2f,"
