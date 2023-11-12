@@ -224,7 +224,7 @@ void nodered()
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
-             "\"TimeStamp\": %2d/%2d/%2d::%2d:%2d:%2d,"
+             "\"TimeStamp\": %2d-%2d-%2d, %2d:%2d:%2d,"
              "\"ph\": %.2f,"
              "\"tds\": %.2f,"
              "\"rain\": %.2f,"
@@ -236,7 +236,7 @@ void nodered()
              "\"infra3\": %.2f,"
              "\"Berat_1\": %.2f"
              "}",
-             tanggal, bulan, tahun, jam, minute, second, phdum, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), infradum1, infradum2, infradum3, i);
+             tanggal, bulan, tahun, jam, minute, second, phdum, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), infradum1, infradum1, infradum1, i);
     client.publish(topic_utama, utamaStr);
     // mlx1.readObjectTempC(), mlx2.readObjectTempC(), mlx3.readObjectTempC()
 
@@ -347,7 +347,7 @@ void infradumm1()
     Serial.print("Data infra1: ");
     for (int i = 0; i < panjang_data_acak; i++)
     {
-        infradum1 = data_acak[i];
+        infradum1 = 0;
         Serial.print(data_acak[i]);
         Serial.print(" ");
     }
