@@ -10,20 +10,6 @@ void setup()
 
 void loop()
 {
-    Serial.println("==0123456789012345==");
-    Serial.print("  ");
-    for (byte i = 0; i < 16; i++)
-    {
-        data = DigitalMux.read(i);
-        if (data == HIGH)
-        {
-            Serial.print("1");
-        }
-
-        else
-        {
-            Serial.print("0");
-        }
-    }
-    Serial.println();
+    PIN = DigitalMux.read(2);
+    Serial.println(PIN);
 }
