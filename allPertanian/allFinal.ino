@@ -72,7 +72,7 @@ Adafruit_MLX90614 mlx2 = Adafruit_MLX90614(); // Objek untuk sensor kedua
 // **************Variable*********************
 int Direction, jam, minute, second, tanggal, bulan, tahun;
 
-float Angle, temp, voltage, phValue, flowRate1, flowRate2, flowRate3, flowRate4, i, fix0, fix1, fix2, fix3, infra3, phdum, infradum1, infradum2, infradum3;
+float Angle, temp, voltage, phValue, flowRate1, flowRate2, flowRate3, flowRate4, i, fix0, fix1, fix2, fix3, infra3, phdum, infradum1, infradum2, infradum3, beratdum1;
 char strftime_buf[64];
 
 OneWire ds(DS18S20_Pin);
@@ -146,9 +146,29 @@ void IRAM_ATTR pulseCounter4()
 
 float data_list[] = {6.85, 7.01, 7.11, 6.92, 7.27, 7.21, 7.18, 6.95};
 float data_list1[] = {28.12, 29.66, 30.34, 31.21, 33.71, 27.91, 28.79, 27.41, 26.67};
+float data_list2[] = {
+    5400,
+    5423,
+    5431,
+    5444,
+    5354,
+    5433,
+    5490,
+    5476,
+    5480,
+    5500,
+    5512,
+    5530,
+    5542,
+    5524,
+    5590,
+    5597,
+    5598,
+};
 
-int panjang_data_list1 = sizeof(data_list1) / sizeof(data_list1[0]);
 int panjang_data_list = sizeof(data_list) / sizeof(data_list[0]);
+int panjang_data_list1 = sizeof(data_list1) / sizeof(data_list1[0]);
+int panjang_data_list2 = sizeof(data_list) / sizeof(data_list[0]);
 
 const char *Orientation[17] = {
     "north", "north by northeast", "northeast", "east by northeast", "east", "east by southeast", "southeast", "south by southeast", "south",
@@ -196,6 +216,12 @@ void loop()
     infradumm1();
     infradumm2();
     infradumm3();
+    beratdum();
+    if (jam == 10 || jam == 6 || jam == 13)
+    {
+        beratdum1 += 100;
+    }
+    delay(2000);
     // sensorBerat();
     // sensorInfra();
 }
@@ -236,7 +262,7 @@ void nodered()
              "\"infra3\": %.2f,"
              "\"Berat_1\": %.2f"
              "}",
-             tanggal, bulan, tahun, jam, minute, second, phdum, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), infradum1, infradum1, infradum1, i);
+             tahun, bulan, tanggal, jam, minute, second, phdum, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), infradum1, infradum1, infradum1, beratdum1);
     client.publish(topic_utama, utamaStr);
     // mlx1.readObjectTempC(), mlx2.readObjectTempC(), mlx3.readObjectTempC()
 
@@ -253,7 +279,7 @@ void nodered()
              "\"Soil_3\": %.2f,"
              "\"Soil_4\": %.2f"
              "}",
-             tanggal, bulan, tahun, jam, minute, second, flowRate1, flowRate2, flowRate3, flowRate4, fix0, fix1, fix2, fix3);
+             tahun, bulan, tanggal, jam, minute, second, flowRate1, flowRate2, flowRate3, flowRate4, fix0, fix1, fix2, fix3);
 
     client.publish(topic_kedua, waterStr);
 }
@@ -308,6 +334,29 @@ void printLocalTime()
     char strftime_buf[50]; // Buffer untuk menyimpan timestamp yang diformat
     strftime(strftime_buf, sizeof(strftime_buf), "%A, %d %B %Y %H:%M:%S", &timeinfo);
     Serial.println(strftime_buf);
+}
+
+void beratdum()
+{
+    // Membuat data acak
+    int panjang_data_acak = 17; // Sesuaikan dengan panjang data acak yang Anda inginkan
+    int data_acak[panjang_data_acak];
+
+    for (int i = 0; i < panjang_data_acak; i++)
+    {
+        int indeks_acak = random(panjang_data_list2); // Pilih indeks acak dari data_list
+        data_acak[i] = data_list2[indeks_acak];       // Ambil data dari data_list sesuai dengan indeks acak
+    }
+
+    // Print data acak
+    Serial.print("Data Acak: ");
+    for (int i = 0; i < panjang_data_acak; i++)
+    {
+        beratdum1 = data_acak[i];
+        Serial.print(data_acak[i]);
+        Serial.print(" ");
+    }
+    Serial.println();
 }
 
 void phdumm()

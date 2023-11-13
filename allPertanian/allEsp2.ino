@@ -56,7 +56,68 @@ const long interval = 5000;
 
 int relay1, relay2, relay3;
 
-float temperature, Pressure, a, b, c;
+float temperature, Pressure, a, b, c, beratdum1, beratdum2, beratdum3;
+float data_list[] = {
+    5800,
+    5823,
+    5831,
+    5844,
+    5854,
+    5833,
+    5890,
+    5876,
+    5880,
+    5900,
+    5912,
+    5930,
+    5942,
+    5924,
+    5990,
+    5997,
+    5998,
+};
+float data_list2[] = {
+    5866,
+    5843,
+    5878,
+    5877,
+    5889,
+    5890,
+    5899,
+    5855,
+    5849,
+    5748,
+    5759,
+    5719,
+    5720,
+    5730,
+    5790,
+    5797,
+    5798,
+};
+float data_list3[] = {
+    5842,
+    5812,
+    5842,
+    5858,
+    5889,
+    5890,
+    5866,
+    5875,
+    5878,
+    5741,
+    5710,
+    5790,
+    5788,
+    5757,
+    5780,
+    5799,
+    5755,
+};
+
+int panjang_data_list = sizeof(data_list) / sizeof(data_list[0]);
+int panjang_data_list2 = sizeof(data_list2) / sizeof(data_list2[0]);
+int panjang_data_list3 = sizeof(data_list3) / sizeof(data_list3[0]);
 
 void setup()
 {
@@ -97,11 +158,21 @@ void loop()
 
     sensorBmp();
     sensorBerat();
+    beratdumm();
+    beratdumm2();
+    beratdumm3();
     relay11(); // Untuk Lampu UV
     relay22();
     relay33();
     nodered();
-    delay(1000);
+    if (jam == 10 || jam == 6 || jam == 13)
+    {
+        beratdum1 += 100;
+        beratdum2 += 100;
+        beratdum3 += 100;
+    }
+
+    delay(300000);
 }
 
 void reconnectMQTT()
@@ -129,17 +200,17 @@ void nodered()
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
-             "\"TimeStamp\": \"%2d-%2d-%2dT%2d:%2d:%2d+07:00\"
+             "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
              "\"temperatureBMP\": %.2f,"
              "\"pressure\": %.2f,"
              "\"berat_2\": %.2f,"
              "\"berat_3\": %.2f,"
              "\"berat_4\": %.2f,"
-             "\"lampu_uv\": %.2d,"
-             "\"pompanutrisi\": %.2d,"
-             "\"pompapendingin\": %.2d"
+             "\"lampu_uv\": %d,"
+             "\"pompanutrisi\": %d,"
+             "\"pompapendingin\": %d"
              "}",
-             tanggal, bulan, tahun, jam, minute, second, temperature, Pressure, a, b, c, relay1, relay2, relay3);
+             tahun, bulan, tanggal, jam, minute, second, temperature, Pressure, beratdum1, beratdum2, beratdum3, relay1, relay2, relay3);
 
     client.publish(topic_ketiga, utamaStr); // Mengirim data suhu ke broker MQTT
 }
@@ -164,6 +235,73 @@ void printLocalTime()
     char strftime_buf[50]; // Buffer untuk menyimpan timestamp yang diformat
     strftime(strftime_buf, sizeof(strftime_buf), "%A, %d %B %Y %H:%M:%S", &timeinfo);
     Serial.println(strftime_buf);
+}
+
+void beratdumm()
+{
+    // Membuat data acak
+    int panjang_data_acak = 17; // Sesuaikan dengan panjang data acak yang Anda inginkan
+    int data_acak[panjang_data_acak];
+
+    for (int i = 0; i < panjang_data_acak; i++)
+    {
+        int indeks_acak = random(panjang_data_list2); // Pilih indeks acak dari data_list
+        data_acak[i] = data_list2[indeks_acak];       // Ambil data dari data_list sesuai dengan indeks acak
+    }
+
+    // Print data acak
+    Serial.print("Data Acak: ");
+    for (int i = 0; i < panjang_data_acak; i++)
+    {
+        beratdum1 = data_acak[i];
+        Serial.print(data_acak[i]);
+        Serial.print(" ");
+    }
+    Serial.println();
+}
+void beratdumm2()
+{
+    // Membuat data acak
+    int panjang_data_acak = 17; // Sesuaikan dengan panjang data acak yang Anda inginkan
+    int data_acak[panjang_data_acak];
+
+    for (int i = 0; i < panjang_data_acak; i++)
+    {
+        int indeks_acak = random(panjang_data_list2); // Pilih indeks acak dari data_list
+        data_acak[i] = data_list2[indeks_acak];       // Ambil data dari data_list sesuai dengan indeks acak
+    }
+
+    // Print data acak
+    Serial.print("Data Acak: ");
+    for (int i = 0; i < panjang_data_acak; i++)
+    {
+        beratdum2 = data_acak[i];
+        Serial.print(data_acak[i]);
+        Serial.print(" ");
+    }
+    Serial.println();
+}
+void beratdumm3()
+{
+    // Membuat data acak
+    int panjang_data_acak = 17; // Sesuaikan dengan panjang data acak yang Anda inginkan
+    int data_acak[panjang_data_acak];
+
+    for (int i = 0; i < panjang_data_acak; i++)
+    {
+        int indeks_acak = random(panjang_data_list3); // Pilih indeks acak dari data_list
+        data_acak[i] = data_list3[indeks_acak];       // Ambil data dari data_list sesuai dengan indeks acak
+    }
+
+    // Print data acak
+    Serial.print("Data Acak: ");
+    for (int i = 0; i < panjang_data_acak; i++)
+    {
+        beratdum3 = data_acak[i];
+        Serial.print(data_acak[i]);
+        Serial.print(" ");
+    }
+    Serial.println();
 }
 
 void setBerat()
