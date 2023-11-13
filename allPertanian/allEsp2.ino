@@ -129,7 +129,7 @@ void nodered()
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
-             "\"TimeStamp\": %2d-%2d-%2d::%2d:%2d:%2d,"
+             "\"TimeStamp\": \"%2d-%2d-%2dT%2d:%2d:%2d+07:00\"
              "\"temperatureBMP\": %.2f,"
              "\"pressure\": %.2f,"
              "\"berat_2\": %.2f,"
@@ -406,7 +406,7 @@ void relay33()
     int minute = timeinfo.tm_min;
 
     // Kontrol RELAY_PIN2
-    if (temperature > 28)
+    if (temperature > 32)
     {
         digitalWrite(RELAY_PIN3, LOW);
         relay3 = 1;

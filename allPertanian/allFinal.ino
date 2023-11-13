@@ -224,7 +224,7 @@ void nodered()
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
-             "\"TimeStamp\": %2d-%2d-%2d, %2d:%2d:%2d,"
+             "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
              "\"ph\": %.2f,"
              "\"tds\": %.2f,"
              "\"rain\": %.2f,"
@@ -243,7 +243,7 @@ void nodered()
     char waterStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(waterStr, sizeof(waterStr),
              "{"
-             "\"TimeStamp\": %2d/%2d/%d,%2d:%2d:%2d,"
+             "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
              "\"Water_1\": %.2f,"
              "\"Water_2\": %.2f,"
              "\"Water_3\": %.2f,"
