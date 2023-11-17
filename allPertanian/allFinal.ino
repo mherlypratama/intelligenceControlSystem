@@ -147,23 +147,23 @@ void IRAM_ATTR pulseCounter4()
 float data_list[] = {6.85, 7.01, 7.11, 6.92, 7.27, 7.21, 7.18, 6.95};
 float data_list1[] = {28.12, 29.66, 30.34, 31.21, 33.71, 27.91, 28.79, 27.41, 26.67};
 float data_list2[] = {
-    5400,
-    5423,
-    5431,
-    5444,
-    5354,
-    5433,
-    5490,
-    5476,
-    5480,
-    5500,
-    5512,
-    5530,
-    5542,
-    5524,
-    5590,
-    5597,
-    5598,
+    6420,
+    6433,
+    6451,
+    6464,
+    6384,
+    6493,
+    6400,
+    6474,
+    6423,
+    6620,
+    6623,
+    6430,
+    6622,
+    6624,
+    6640,
+    6647,
+    6658,
 };
 
 int panjang_data_list = sizeof(data_list) / sizeof(data_list[0]);
@@ -203,7 +203,6 @@ void loop()
     }
     client.loop();
 
-    nodered();
     printLocalTime();
     sensorwind();
     sensorAnemo();
@@ -221,7 +220,8 @@ void loop()
     {
         beratdum1 += 100;
     }
-    delay(2000);
+    nodered();
+    delay(60000);
     // sensorBerat();
     // sensorInfra();
 }
@@ -253,7 +253,6 @@ void nodered()
              "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
              "\"ph\": %.2f,"
              "\"tds\": %.2f,"
-             "\"rain\": %.2f,"
              "\"tempDs\": %.2f,"
              "\"windDirection\": %.2f,"
              "\"anemo\": %.2f,"
@@ -262,7 +261,7 @@ void nodered()
              "\"infra3\": %.2f,"
              "\"Berat_1\": %.2f"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, phdum, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), infradum1, infradum1, infradum1, beratdum1);
+             tahun, bulan, tanggal, jam, minute, second, phdum, (int)tdsValue, temp, Angle, readWindSpeed(Address0), infradum1, infradum1, infradum1, beratdum1);
     client.publish(topic_utama, utamaStr);
     // mlx1.readObjectTempC(), mlx2.readObjectTempC(), mlx3.readObjectTempC()
 
