@@ -1,16 +1,24 @@
-// PH
-#include <OneWire.h>
 #include "DFRobot_ESP_PH.h"
 #include "EEPROM.h"
+#include <OneWire.h>
+
+#define PH_PIN 13 // the esp gpio data pin number
+#define TdsSensorPin 14
+int DS18S20_Pin = 27;         // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
+const int rainSensorPin = 12; // Pin GPIO yang terhubung ke sensor hujan
+
+OneWire ds(DS18S20_Pin);
+
+volatile unsigned long rainCounter = 0; // Variabel penghitung pulsa hujan
+float rainAccumulated = 0.0;            // Variabel untuk menghitung hujan yang terakumulasi
+unsigned long lastRainTime = 0;         // Waktu terakhir terdeteksi hujan
+unsigned long noRainTimeout = 10000;    // Timeout dalam milidetik (misalnya, 10 menit)
 
 DFRobot_ESP_PH ph;
 #define ESPADC 4096.0   // the esp Analog Digital Convertion value
 #define ESPVOLTAGE 3300 // the esp voltage supply value
-#define PH_PIN 13       // the esp gpio data pin number
 float voltage, phValue;
 
-// TDS
-#define TdsSensorPin 14   // sesuaikan dengan pin arduino
 #define VREF 5.0          // analog reference voltage(Volt) of the ADC
 #define SCOUNT 30         // sum of sample point
 int analogBuffer[SCOUNT]; // store the analog value in the array, read from ADC
@@ -18,31 +26,31 @@ int analogBufferTemp[SCOUNT];
 int analogBufferIndex = 0, copyIndex = 0;
 float averageVoltage = 0, tdsValue = 0, temperature = 25;
 
-// DS18S20 dan Rain
-int DS18S20_Pin = 27; // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
-
-// Temperature chip i/o
-OneWire ds(DS18S20_Pin);
-
-const int rainSensorPin = 12;           // Pin GPIO yang terhubung ke sensor hujan
-volatile unsigned long rainCounter = 0; // Variabel penghitung pulsa hujan
-float rainAccumulated = 0.0;            // Variabel untuk menghitung hujan yang terakumulasi
-unsigned long lastRainTime = 0;         // Waktu terakhir terdeteksi hujan
-unsigned long noRainTimeout = 10000;    // Timeout dalam milidetik (misalnya, 10 menit)
-
 void setup()
 {
-    pinMode(TdsSensorPin, INPUT);
-    pinMode(rainSensorPin, INPUT_PULLUP);                                          // Mengatur pin sensor hujan sebagai input dengan pull-up
-    attachInterrupt(digitalPinToInterrupt(rainSensorPin), rainInterrupt, FALLING); // Menghubungkan interrupt ke pin sensor hujan saat pulsa jatuh
     Serial.begin(9600);
-    EEPROM.begin(32); // needed to permit storage of calibration value in eeprom
-    ph.begin();
-    Serial.println("Ready"); // Test the serial monitor
+    setPH();
+    setTds();
+    setsuhuair();
 }
+
 void loop()
 {
-    // Ambil Nilai PH
+    sensorPH();
+    sensortds();
+    sensorsuhuair();
+    Serial.println("=============================================="); // Menampilkan hingga 2 desimal
+    delay(2000);
+}
+
+void setsuhuair()
+{
+    pinMode(rainSensorPin, INPUT_PULLUP);                                          // Mengatur pin sensor hujan sebagai input dengan pull-up
+    attachInterrupt(digitalPinToInterrupt(rainSensorPin), rainInterrupt, FALLING); // Menghubungkan interrupt ke pin sensor hujan saat pulsa jatuh
+}
+
+void sensorsuhuair()
+{
     unsigned long currentTime = millis();
 
     // Cek jika tidak ada pulsa hujan selama waktu tertentu (noRainTimeout)
@@ -51,6 +59,7 @@ void loop()
         rainAccumulated = 0.0; // Reset jumlah hujan terakumulasi
     }
 
+    // Mencetak jumlah hujan yang terakumulasi setiap beberapa detik
     delay(1000); // Misalnya, cetak setiap 5 detik
     Serial.print("Hujan Terakumulasi (mm): ");
     Serial.println(rainAccumulated, 2); // Menampilkan hingga 2 desimal
@@ -59,14 +68,12 @@ void loop()
     float temperature = getTemp();
     Serial.print("Temperature: ");
     Serial.println(temperature);
+}
 
-    sensorPH();
-    sensorTDS();
-
-    Serial.println(" ");
-    digitalWrite(13, HIGH);
-    delay(800);
-    digitalWrite(13, LOW);
+void setPH()
+{
+    EEPROM.begin(32); // needed to permit storage of calibration value in eeprom
+    ph.begin();
 }
 
 void sensorPH()
@@ -77,17 +84,27 @@ void sensorPH()
         timepoint = millis();
         // voltage = rawPinValue / esp32ADC * esp32Vin
         voltage = analogRead(PH_PIN) / ESPADC * ESPVOLTAGE; // read the voltage
-        // Serial.print("voltage:");
-        // Serial.println(voltage, 4);
+        Serial.print("voltage:");
+        Serial.println(voltage, 4);
+
+        // temperature = readTemperature();  // read your temperature sensor to execute temperature compensation
+        Serial.print("temperature:");
+        Serial.print(temperature, 1);
+        Serial.println("^C");
 
         phValue = ph.readPH(voltage, temperature); // convert voltage to pH with temperature compensation
         Serial.print("pH:");
         Serial.println(phValue, 4);
     }
-    ph.calibration(voltage, temperature);
+    ph.calibration(voltage, temperature); // calibration process by Serail CMD
 }
 
-void sensorTDS()
+void setTds()
+{
+    pinMode(TdsSensorPin, INPUT);
+}
+
+void sensortds()
 {
     static unsigned long analogSampleTimepoint = millis();
     if (millis() - analogSampleTimepoint > 40U) // every 40 milliseconds,read the analog value from the ADC

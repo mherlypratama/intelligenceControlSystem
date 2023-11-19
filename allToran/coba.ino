@@ -1,8 +1,18 @@
 #include "DFRobot_ESP_PH.h"
 #include "EEPROM.h"
+#include <OneWire.h>
 
-#define PH_PIN 35 // the esp gpio data pin number
+#define PH_PIN 13 // the esp gpio data pin number
 #define TdsSensorPin 14
+int DS18S20_Pin = 27;         // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
+const int rainSensorPin = 12; // Pin GPIO yang terhubung ke sensor hujan
+
+OneWire ds(DS18S20_Pin);
+
+volatile unsigned long rainCounter = 0; // Variabel penghitung pulsa hujan
+float rainAccumulated = 0.0;            // Variabel untuk menghitung hujan yang terakumulasi
+unsigned long lastRainTime = 0;         // Waktu terakhir terdeteksi hujan
+unsigned long noRainTimeout = 10000;    // Timeout dalam milidetik (misalnya, 10 menit)
 
 DFRobot_ESP_PH ph;
 #define ESPADC 4096.0   // the esp Analog Digital Convertion value
@@ -21,12 +31,43 @@ void setup()
     Serial.begin(9600);
     setPH();
     setTds();
+    setsuhuair();
 }
 
 void loop()
 {
     sensorPH();
     sensortds();
+    sensorsuhuair();
+    Serial.println("=============================================="); // Menampilkan hingga 2 desimal
+    delay(2000);
+}
+
+void setsuhuair()
+{
+    pinMode(rainSensorPin, INPUT_PULLUP);                                          // Mengatur pin sensor hujan sebagai input dengan pull-up
+    attachInterrupt(digitalPinToInterrupt(rainSensorPin), rainInterrupt, FALLING); // Menghubungkan interrupt ke pin sensor hujan saat pulsa jatuh
+}
+
+void sensorsuhuair()
+{
+    unsigned long currentTime = millis();
+
+    // Cek jika tidak ada pulsa hujan selama waktu tertentu (noRainTimeout)
+    if (currentTime - lastRainTime >= noRainTimeout)
+    {
+        rainAccumulated = 0.0; // Reset jumlah hujan terakumulasi
+    }
+
+    // Mencetak jumlah hujan yang terakumulasi setiap beberapa detik
+    delay(1000); // Misalnya, cetak setiap 5 detik
+    Serial.print("Hujan Terakumulasi (mm): ");
+    Serial.println(rainAccumulated, 2); // Menampilkan hingga 2 desimal
+
+    // Read temperature and print
+    float temperature = getTemp();
+    Serial.print("Temperature: ");
+    Serial.println(temperature);
 }
 
 void setPH()
@@ -116,4 +157,64 @@ int getMedianNum(int bArray[], int iFilterLen)
     else
         bTemp = (bTab[iFilterLen / 2] + bTab[iFilterLen / 2 - 1]) / 2;
     return bTemp;
+}
+
+void rainInterrupt()
+{
+    // Fungsi yang akan dipanggil ketika terjadi pulsa hujan
+    rainCounter++;             // Menambah penghitung pulsa
+    rainAccumulated += 0.2794; // Menambahkan jumlah hujan (silakan sesuaikan dengan spesifikasi sensor Anda)
+    lastRainTime = millis();   // Memperbarui waktu terakhir terdeteksi hujan
+}
+
+float getTemp()
+{
+    // Returns the temperature from one DS18S20 in DEG Celsius
+
+    byte data[12];
+    byte addr[8];
+
+    if (!ds.search(addr))
+    {
+        // No more sensors on the chain, reset search
+        ds.reset_search();
+        return -1000;
+    }
+
+    if (OneWire::crc8(addr, 7) != addr[7])
+    {
+        Serial.println("CRC is not valid!");
+        return -1000;
+    }
+
+    if (addr[0] != 0x10 && addr[0] != 0x28)
+    {
+        Serial.print("Device is not recognized");
+        return -1000;
+    }
+
+    ds.reset();
+    ds.select(addr);
+    ds.write(0x44, 1); // Start conversion, with parasite power on at the end
+
+    delay(1000); // Wait for the conversion to complete (adjust as needed)
+
+    ds.reset();
+    ds.select(addr);
+    ds.write(0xBE); // Read Scratchpad
+
+    for (int i = 0; i < 9; i++)
+    { // We need 9 bytes
+        data[i] = ds.read();
+    }
+
+    ds.reset_search();
+
+    byte MSB = data[1];
+    byte LSB = data[0];
+
+    float tempRead = ((MSB << 8) | LSB); // Using two's complement
+    float TemperatureSum = tempRead / 16.0;
+
+    return TemperatureSum;
 }
