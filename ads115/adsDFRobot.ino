@@ -18,7 +18,7 @@ DFRobot_ADS1115 ads(&Wire);
 
 void setup(void)
 {
-    Serial.begin(115200);
+    Serial.begin(9600);
     ads.setAddr_ADS1115(ADS1115_IIC_ADDRESS1); // 0x48
     ads.setGain(eGAIN_TWOTHIRDS);              // 2/3x gain
     ads.setMode(eMODE_SINGLE);                 // single-shot mode

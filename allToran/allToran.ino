@@ -6,11 +6,11 @@
 DFRobot_ESP_PH ph;
 #define ESPADC 4096.0   // the esp Analog Digital Convertion value
 #define ESPVOLTAGE 3300 // the esp voltage supply value
-#define PH_PIN 35       // the esp gpio data pin number
-float voltage, phValue, temperature = 25;
+#define PH_PIN 13       // the esp gpio data pin number
+float voltage, phValue;
 
 // TDS
-#define TdsSensorPin 34   // sesuaikan dengan pin arduino
+#define TdsSensorPin 14   // sesuaikan dengan pin arduino
 #define VREF 5.0          // analog reference voltage(Volt) of the ADC
 #define SCOUNT 30         // sum of sample point
 int analogBuffer[SCOUNT]; // store the analog value in the array, read from ADC
@@ -19,12 +19,12 @@ int analogBufferIndex = 0, copyIndex = 0;
 float averageVoltage = 0, tdsValue = 0, temperature = 25;
 
 // DS18S20 dan Rain
-int DS18S20_Pin = 25; // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
+int DS18S20_Pin = 27; // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
 
 // Temperature chip i/o
 OneWire ds(DS18S20_Pin);
 
-const int rainSensorPin = 15;           // Pin GPIO yang terhubung ke sensor hujan
+const int rainSensorPin = 12;           // Pin GPIO yang terhubung ke sensor hujan
 volatile unsigned long rainCounter = 0; // Variabel penghitung pulsa hujan
 float rainAccumulated = 0.0;            // Variabel untuk menghitung hujan yang terakumulasi
 unsigned long lastRainTime = 0;         // Waktu terakhir terdeteksi hujan
