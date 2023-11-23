@@ -1,6 +1,6 @@
 #include <DHT.h>
 
-#define DHTPIN 2      // Pin data sensor DHT22 terhubung ke pin 2 pada ESP32
+#define DHTPIN 13     // Pin data sensor DHT22 terhubung ke pin 2 pada ESP32
 #define DHTTYPE DHT22 // Jenis sensor, sesuaikan dengan sensor yang Anda gunakan
 
 DHT dht(DHTPIN, DHTTYPE);
