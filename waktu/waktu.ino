@@ -12,6 +12,24 @@ void setup()
 {
     Serial.begin(9600);
 
+    // Init and get the time
+    setwifi();
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    printLocalTime();
+
+    // // disconnect WiFi as it's no longer needed
+    // WiFi.disconnect(true);
+    // WiFi.mode(WIFI_OFF);
+}
+
+void loop()
+{
+    delay(1000);
+    printLocalTime();
+}
+
+void setwifi()
+{
     // Connect to Wi-Fi
     Serial.print("Connecting to ");
     Serial.println(ssid);
@@ -23,20 +41,6 @@ void setup()
     }
     Serial.println("");
     Serial.println("WiFi connected.");
-
-    // Init and get the time
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-    printLocalTime();
-
-    // disconnect WiFi as it's no longer needed
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_OFF);
-}
-
-void loop()
-{
-    delay(1000);
-    printLocalTime();
 }
 
 void printLocalTime()
