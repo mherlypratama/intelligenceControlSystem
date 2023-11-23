@@ -2,6 +2,32 @@
 #include "EEPROM.h"
 #include <OneWire.h>
 
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include "time.h"
+
+// Konfigurasi jaringan Wi-Fi
+const char *ssid = "Lab Telkom 2.4 GHz";
+const char *password = "telkom ";
+
+// Konfigurasi server MQTT di VPS Anda
+const char *mqtt_server = "vps.isi-net.org";
+const int mqtt_port = 1883;
+const char *mqtt_user = "unila";
+const char *mqtt_password = "pwdMQTT@123";
+
+const char *ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = 21600;
+const int daylightOffset_sec = 3600;
+
+const char *topic_utama = "ics/gisting2";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+unsigned long lastMsgTime = 0;
+const long interval = 5000; // Kirim data setiap 5 detik
+
 #define PH_PIN 13 // the esp gpio data pin number
 #define TdsSensorPin 14
 int DS18S20_Pin = 27;         // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
@@ -29,6 +55,13 @@ float averageVoltage = 0, tdsValue = 0, temperature = 25;
 void setup()
 {
     Serial.begin(9600);
+    setupWiFi();
+    client.setServer(mqtt_server, mqtt_port);
+
+    // Init and get the time
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    printLocalTime();
+
     setPH();
     setTds();
     setsuhuair();
@@ -36,11 +69,111 @@ void setup()
 
 void loop()
 {
+    if (!client.connected())
+    {
+        reconnectMQTT();
+    }
+    client.loop();
+
+    printLocalTime();
+
+    nodered();
     sensorPH();
     sensortds();
     sensorsuhuair();
     Serial.println("=============================================="); // Menampilkan hingga 2 desimal
     delay(2000);
+}
+
+void nodered()
+{
+    char utamaStr[1000]; // Buffer untuk menyimpan JSON
+    snprintf(utamaStr, sizeof(utamaStr),
+             "{"
+             "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
+             "\"ph\": %.2f,"
+             "\"tds\": %.2f,"
+             "\"tempDs\": %.2f,"
+             "\"windDirection\": %.2f,"
+             "\"anemo\": %.2f,"
+             "\"infra1\": %.2f,"
+             "\"infra2\": %.2f,"
+             "\"infra3\": %.2f,"
+             "\"Berat_1\": %.2f"
+             "}",
+             tahun, bulan, tanggal, jam, minute, second, phdum, (int)tdsValue, temp, Angle, readWindSpeed(Address0), infradum1, infradum1, infradum1, beratdum1);
+    client.publish(topic_utama, utamaStr);
+}
+
+void printLocalTime()
+{
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+        Serial.println("Failed to obtain time");
+        return;
+    }
+    Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+    Serial.print("Day of week: ");
+    Serial.println(&timeinfo, "%A");
+    Serial.print("Month: ");
+    Serial.println(&timeinfo, "%B");
+    Serial.print("Day of Month: ");
+    Serial.println(&timeinfo, "%d");
+    Serial.print("Year: ");
+    Serial.println(&timeinfo, "%Y");
+    Serial.print("Hour: ");
+    Serial.println(&timeinfo, "%H");
+    Serial.print("Hour (12 hour format): ");
+    Serial.println(&timeinfo, "%I");
+    Serial.print("Minute: ");
+    Serial.println(&timeinfo, "%M");
+    Serial.print("Second: ");
+    Serial.println(&timeinfo, "%S");
+
+    Serial.println("Time variables");
+    char timeHour[3];
+    strftime(timeHour, 3, "%H", &timeinfo);
+    Serial.println(timeHour);
+    char timeWeekDay[10];
+    strftime(timeWeekDay, 10, "%A", &timeinfo);
+    Serial.println(timeWeekDay);
+    Serial.println();
+}
+
+void setupWiFi()
+{
+    Serial.print("Menghubungkan ke WiFi...");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(5000);
+        Serial.println("Menghubungkan ke WiFi...");
+    }
+    Serial.println("Terhubung ke WiFi");
+}
+
+void reconnectMQTT()
+{
+    while (!client.connected())
+    {
+        Serial.print("Menghubungkan ke broker MQTT...");
+        if (client.connect("ESP32Client", mqtt_user, mqtt_password))
+        {
+            Serial.println("Terhubung ke broker MQTT");
+        }
+        else
+        {
+            Serial.print("Gagal, kode kesalahan = ");
+            Serial.println(client.state());
+            delay(5000);
+        }
+    }
+}
+
+void callback(char *topic, byte *payload, unsigned int length)
+{
+    // Implementasi callback jika diperlukan
 }
 
 void setsuhuair()
