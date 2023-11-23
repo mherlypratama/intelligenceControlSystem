@@ -52,7 +52,7 @@ float voltage, phValue;
 int analogBuffer[SCOUNT]; // store the analog value in the array, read from ADC
 int analogBufferTemp[SCOUNT];
 int analogBufferIndex = 0, copyIndex = 0;
-float averageVoltage = 0, tdsValue = 0, temp;
+float averageVoltage = 0, tdsValue = 0, temp, temperature;
 
 void setup()
 {
