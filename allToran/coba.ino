@@ -22,6 +22,8 @@ const int daylightOffset_sec = 3600;
 
 const char *topic_utama = "ics/gisting2";
 
+int jam, minute, second, tanggal, bulan, tahun;
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -114,15 +116,17 @@ void printLocalTime()
         return;
     }
 
-    tanggal = &timeinfo, "%A, %B %d %Y %H:%M:%S";
-    Serial.println();
+    jam = timeinfo.tm_hour;
+    minute = timeinfo.tm_min;
+    second = timeinfo.tm_sec;
 
-    char strftime_buf[64];
+    tanggal = timeinfo.tm_mday;
+    bulan = timeinfo.tm_mon + 1;     // Bulan dimulai dari 0, sehingga Anda perlu menambahkan 1
+    tahun = 1900 + timeinfo.tm_year; // Tahun dimulai dari 1900
 
-    // Format waktu sesuai keinginan Anda, contoh: "Sabtu, 06 November 2023 14:30:45"
+    char strftime_buf[50]; // Buffer untuk menyimpan timestamp yang diformat
     strftime(strftime_buf, sizeof(strftime_buf), "%A, %d %B %Y %H:%M:%S", &timeinfo);
     Serial.println(strftime_buf);
-    Serial.println();
 }
 
 void setupWiFi()
