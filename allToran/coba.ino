@@ -52,7 +52,7 @@ float voltage, phValue;
 int analogBuffer[SCOUNT]; // store the analog value in the array, read from ADC
 int analogBufferTemp[SCOUNT];
 int analogBufferIndex = 0, copyIndex = 0;
-float averageVoltage = 0, tdsValue = 0, temperature = 25;
+float averageVoltage = 0, tdsValue = 0, temp;
 
 void setup()
 {
@@ -98,7 +98,7 @@ void nodered()
              "\"temp_air\": %.2f,"
              "\"hujan\": %.2f"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, phValue, tdsValue, );
+             tahun, bulan, tanggal, jam, minute, second, phValue, tdsValue, temp, rainAccumulated);
     client.publish(topic_utama, utamaStr);
 }
 
@@ -181,9 +181,9 @@ void sensorsuhuair()
     Serial.println(rainAccumulated, 2); // Menampilkan hingga 2 desimal
 
     // Read temperature and print
-    float temperature = getTemp();
-    Serial.print("Temperature: ");
-    Serial.println(temperature);
+    temp = getTemp();
+    Serial.print("temp: ");
+    Serial.println(temp);
 }
 
 void setPH()
