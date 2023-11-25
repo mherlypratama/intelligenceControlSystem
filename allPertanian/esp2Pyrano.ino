@@ -504,7 +504,7 @@ void sensorBmp()
     Serial.print(temperature);
     Serial.println(" C");
 
-    humi = 100 - temperature;
+    humi = 84 - temperature;
 
     Pressure = sensor.readPressPa();
     Serial.print("Pressure : ");
