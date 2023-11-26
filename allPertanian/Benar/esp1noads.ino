@@ -3,8 +3,8 @@
 #include <OneWire.h>
 #include "DFRobot_ESP_PH.h"
 #include "EEPROM.h"
-#include <HX711_ADC.h>
 #include <OneWire.h>
+#include <HX711_ADC.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <Wire.h>
