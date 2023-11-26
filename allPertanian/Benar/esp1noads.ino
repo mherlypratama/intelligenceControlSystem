@@ -10,8 +10,8 @@
 #include <Wire.h>
 #include <DFRobot_ADS1115.h>
 #include "time.h"
-#include <Wire.h>
 #include <Adafruit_MLX90614.h>
+#include <Wire.h>
 
 // Konfigurasi jaringan Wi-Fi
 const char *ssid = "pertanian24";
