@@ -39,7 +39,27 @@ void loop()
     sensorpyrano();
     delay(3000);
 }
+void printLocalTime()
+{
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+        Serial.println("Failed to obtain time");
+        return;
+    }
 
+    jam = timeinfo.tm_hour;
+    minute = timeinfo.tm_min;
+    second = timeinfo.tm_sec;
+
+    tanggal = timeinfo.tm_mday;
+    bulan = timeinfo.tm_mon + 1;     // Bulan dimulai dari 0, sehingga Anda perlu menambahkan 1
+    tahun = 1900 + timeinfo.tm_year; // Tahun dimulai dari 1900
+
+    char strftime_buf[50]; // Buffer untuk menyimpan timestamp yang diformat
+    strftime(strftime_buf, sizeof(strftime_buf), "%A, %d %B %Y %H:%M:%S", &timeinfo);
+    Serial.println(strftime_buf);
+}
 void setpyrano()
 {
     mod.begin(4800);
