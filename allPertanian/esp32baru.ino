@@ -4,6 +4,11 @@
 #include <PubSubClient.h>
 #include <SoftwareSerial.h>
 #include <HX711_ADC.h>
+#include <DHT.h>
+
+#define DHTPIN 19     // Pin data sensor DHT22 terhubung ke pin 2 pada ESP32
+#define DHTTYPE DHT22 // Jenis sensor, sesuaikan dengan sensor yang Anda gunakan
+DHT dht(DHTPIN, DHTTYPE);
 
 #include <DFRobot_BMP3XX.h>
 
@@ -32,7 +37,7 @@ HX711_ADC LoadCell_2(HX711_dout_2, HX711_sck_2);
 int Direction, jam, minute, second, tanggal, bulan, tahun;
 int relay1, relay2, relay3;
 
-float temperature, altitude, Pressure, weight_1, weight_2, weight_3, Solar_Radiation, humi;
+float temperature, altitude, Pressure, weight_1, weight_2, weight_3, Solar_Radiation, humi, humid, tempe;
 
 const char *ssid = "pertanian24";
 const char *password = "luarbiasa";
@@ -70,6 +75,8 @@ void setup(void)
     Serial.println("");
     Serial.println("WiFi connected.");
     client.setServer(mqtt_server, mqtt_port);
+
+    dht.begin();
 
     pinMode(RELAY_PIN, OUTPUT);
     pinMode(RELAY_PIN2, OUTPUT);
@@ -143,7 +150,7 @@ void nodered()
              "\"pompanutrisi\": %d,"
              "\"pompapendingin\": %d"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, Solar_Radiation, temperature, humi, Pressure, weight_1, weight_2, weight_3, relay1, relay2, relay3);
+             tahun, bulan, tanggal, jam, minute, second, Solar_Radiation, tempe, humid, Pressure, weight_1, weight_2, weight_3, relay1, relay2, relay3);
 
     client.publish(topic_ketiga, utamaStr); // Mengirim data suhu ke broker MQTT
 }
@@ -168,6 +175,27 @@ void printLocalTime()
     char strftime_buf[50]; // Buffer untuk menyimpan timestamp yang diformat
     strftime(strftime_buf, sizeof(strftime_buf), "%A, %d %B %Y %H:%M:%S", &timeinfo);
     Serial.println(strftime_buf);
+}
+
+void sensordht()
+{
+    humid = dht.readHumidity();
+    tempe = dht.readTemperature();
+
+    // Periksa apakah pembacaan sensor berhasil
+    if (isnan(humid) || isnan(tempe))
+    {
+        Serial.println("Gagal membaca data dari sensor DHT22!");
+        return;
+    }
+
+    // Tampilkan nilai kelembaban dan suhu
+    Serial.print("Kelembaban: ");
+    Serial.print(humid);
+    Serial.print("%\t");
+    Serial.print("Suhu: ");
+    Serial.print(tempe);
+    Serial.println("°C");
 }
 
 void sensorpyrano()
