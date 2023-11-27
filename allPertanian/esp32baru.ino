@@ -106,6 +106,7 @@ void loop()
     sensorBMP();
     sensorBerat();
     sensorpyrano();
+    sensordht();
     relay11(); // Untuk Lampu UV
     relay22();
     relay33();
