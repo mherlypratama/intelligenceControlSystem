@@ -36,7 +36,7 @@ void loop(void)
     volts3 = ads.computeVolts(adc3);
 
     // Pastikan rentang nilai ADC yang diharapkan sesuai dengan sensor soil moisture
-    float adcMin = 1.34; // Ganti dengan nilai ADC terendah yang dihasilkan oleh sensor
+    float adcMin = 0.5;  // Ganti dengan nilai ADC terendah yang dihasilkan oleh sensor
     float adcMax = 2.53; // Ganti dengan nilai ADC tertinggi yang dihasilkan oleh sensor
 
     float datakonversi0 = (volts0 - adcMin) / (adcMax - adcMin) * 100;

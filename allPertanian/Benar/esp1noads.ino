@@ -75,7 +75,7 @@ int Direction, jam, minute, second, tanggal, bulan, tahun;
 float Angle, temp, voltage, phValue, flowRate1, flowRate2, flowRate3, flowRate4, i, fix0, fix1, fix2, fix3, infra3, phdum, infradum1, infradum2, infradum3, beratdum1;
 char strftime_buf[64];
 
-float soill = 71.39, soill2, soill3, soill4;
+float soill = 65.39, soill2, soill3, soill4;
 OneWire ds(DS18S20_Pin);
 
 uint8_t Address = 0x02;
@@ -220,6 +220,9 @@ void loop()
     if (jam == 10 || jam == 6 || jam == 13)
     {
         beratdum1 += 100;
+        soil();
+        nodered();
+        delay(60000);
     }
     soil();
     nodered();
@@ -342,7 +345,7 @@ void soil()
 
     if (jam == 6 && minute == 1 || jam == 10 && minute == 1 || jam == 13 && minute == 1)
     {
-        soill = 73.68;
+        soill = 65.68;
         soill2 = soill + (soill * 0.012);
         soill3 = soill + (soill * 0.021);
         soill4 = soill + (soill * 0.03);
