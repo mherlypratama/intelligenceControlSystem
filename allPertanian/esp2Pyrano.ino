@@ -26,7 +26,7 @@ SoftwareSerial mod(25, 4);
 
 const int HX711_dout_1 = 18; // mcu > HX711 no 1 dout pin
 const int HX711_sck_1 = 5;   // mcu > HX711 no 1 sck pin
-const int HX711_dout_2 = 4;  // mcu > HX711 no 2 dout pin
+const int HX711_dout_2 = 2;  // mcu > HX711 no 2 dout pin
 const int HX711_sck_2 = 2;   // mcu > HX711 no 2 sck pin
 
 int Direction, jam, minute, second, tanggal, bulan, tahun;
@@ -63,9 +63,9 @@ PubSubClient client(espClient);
 unsigned long lastMsgTime = 0;
 const long interval = 5000;
 
-int relay1, relay2, relay3;
+int relay1, relay2, relay3, Solar_Radiation;
 
-float temperature, Pressure, a, b, c, beratdum1, beratdum2, beratdum3, Solar_Radiation, humi;
+float temperature, Pressure, a, b, c, beratdum1, beratdum2, beratdum3, humi;
 float data_list[] = {
     7203,
     7272,
@@ -168,12 +168,12 @@ void loop()
 
     printLocalTime();
 
+    sensorpyrano();
     sensorBmp();
     sensorBerat();
     beratdumm();
     beratdumm2();
     beratdumm3();
-    sensorpyrano();
     relay11(); // Untuk Lampu UV
     relay22();
     relay33();
@@ -185,7 +185,7 @@ void loop()
     }
     nodered();
 
-    delay(60000);
+    delay(1000);
 }
 
 void reconnectMQTT()
