@@ -48,7 +48,6 @@ void setup(void)
     Serial.println(" Hz");
 
     Serial.println();
-    delay(1000);
 }
 
 void loop()

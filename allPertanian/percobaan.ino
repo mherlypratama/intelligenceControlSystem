@@ -2,11 +2,9 @@
 #include <OneWire.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <WiFi.h>
+#include "time.h"
 #include <DFRobot_BMP3XX.h>
-#include <time.h>
-
-DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
-#define CALIBRATE_ABSOLUTE_DIFFERENCE
 
 // Konfigurasi jaringan Wi-Fi
 const char *ssid = "pertanian24";
@@ -20,11 +18,18 @@ const char *mqtt_password = "pwdMQTT@123";
 
 const char *topic_ketiga = "ics/pertanian3";
 
+const char *ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = 25200;
+const int daylightOffset_sec = 3600;
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 unsigned long lastMsgTime = 0;
 const long interval = 5000; // Kirim data setiap 5 detik
+
+DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
+#define CALIBRATE_ABSOLUTE_DIFFERENCE
 
 // pins:
 #define RELAY_PIN 14
@@ -43,11 +48,7 @@ int jam, minute, second, tanggal, bulan, tahun;
 
 float temperature, Pressure, humi, beratdum = 7301, beratdum2, beratdum3, beratdum4;
 
-const char *ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 25200;
-const int daylightOffset_sec = 3600;
-
-void setup()
+void setup(void)
 {
     Serial.begin(9600);
     setupWiFi();
@@ -61,8 +62,6 @@ void setup()
 
     setbmp();
     setpyrano();
-
-    delay(1000);
 }
 
 void loop()
@@ -81,8 +80,10 @@ void loop()
     relay22();
     relay33();
     nodered();
-    delay(3000);
+
+    delay(60000);
 }
+
 void nodered()
 {
 
@@ -106,6 +107,7 @@ void nodered()
 
     client.publish(topic_ketiga, utamaStr); // Mengirim data suhu ke broker MQTT
 }
+
 void printLocalTime()
 {
     struct tm timeinfo;
@@ -128,6 +130,41 @@ void printLocalTime()
     Serial.println(strftime_buf);
 }
 
+void setupWiFi()
+{
+    Serial.print("Menghubungkan ke WiFi...");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(5000);
+        Serial.println("Menghubungkan ke WiFi...");
+    }
+    Serial.println("Terhubung ke WiFi");
+}
+
+void reconnectMQTT()
+{
+    while (!client.connected())
+    {
+        Serial.print("Menghubungkan ke broker MQTT...");
+        if (client.connect("ESP32Client", mqtt_user, mqtt_password))
+        {
+            Serial.println("Terhubung ke broker MQTT");
+        }
+        else
+        {
+            Serial.print("Gagal, kode kesalahan = ");
+            Serial.println(client.state());
+            delay(5000);
+        }
+    }
+}
+
+void callback(char *topic, byte *payload, unsigned int length)
+{
+    // Implementasi callback jika diperlukan
+}
+
 void berat()
 {
     if (jam == 6 && minute == 1 || jam == 10 && minute == 1 || jam == 13 && minute == 1)
@@ -144,6 +181,51 @@ void berat()
         beratdum3 = beratdum + (beratdum * 0.021);
         beratdum4 = beratdum + (beratdum * 0.03);
     }
+}
+
+void setpyrano()
+{
+    mod.begin(4800);
+    pinMode(RE, OUTPUT);
+    pinMode(DE, OUTPUT);
+}
+
+void sensorpyrano()
+{
+    // Transmit the request to the sensor
+    digitalWrite(DE, HIGH);
+    digitalWrite(RE, HIGH);
+    delay(10);
+
+    mod.write(pyranometer, sizeof(pyranometer));
+
+    digitalWrite(DE, LOW);
+    digitalWrite(RE, LOW);
+    delay(10); // Give some time for the sensor to respond
+
+    // Wait until we have the expected number of bytes or timeout
+    unsigned long startTime = millis();
+    while (mod.available() < 7 && millis() - startTime < 1000)
+    {
+        delay(1);
+    }
+
+    // Read the response
+    byte index = 0;
+    while (mod.available() && index < 8)
+    {
+        values[index] = mod.read();
+        Serial.print(values[index], HEX);
+        Serial.print(" ");
+        index++;
+    }
+    Serial.println();
+
+    // Parse the Solar Radiation value
+    Solar_Radiation = int(values[3] << 8 | values[4]);
+    Serial.print("Solar Radiation: ");
+    Serial.print(Solar_Radiation);
+    Serial.println(" W/m^2");
 }
 
 void setbmp()
@@ -199,6 +281,9 @@ void sensorbmp()
     Serial.println(" C");
 
     humi = 84 - temperature;
+    Serial.print("humi : ");
+    Serial.print(humi);
+    Serial.println(" %");
 
     Pressure = sensor.readPressPa();
     Serial.print("Pressure : ");
@@ -206,86 +291,6 @@ void sensorbmp()
     Serial.println(" Pa");
 
     Serial.println();
-}
-
-// Lampu UV
-void setpyrano()
-{
-    mod.begin(4800);
-    pinMode(RE, OUTPUT);
-    pinMode(DE, OUTPUT);
-}
-
-void sensorpyrano()
-{
-    // Transmit the request to the sensor
-    digitalWrite(DE, HIGH);
-    digitalWrite(RE, HIGH);
-    delay(10);
-
-    mod.write(pyranometer, sizeof(pyranometer));
-
-    digitalWrite(DE, LOW);
-    digitalWrite(RE, LOW);
-    delay(10); // Give some time for the sensor to respond
-
-    // Wait until we have the expected number of bytes or timeout
-    unsigned long startTime = millis();
-    while (mod.available() < 7 && millis() - startTime < 1000)
-    {
-        delay(1);
-    }
-
-    // Read the response
-    byte index = 0;
-    while (mod.available() && index < 8)
-    {
-        values[index] = mod.read();
-        Serial.print(values[index], HEX);
-        Serial.print(" ");
-        index++;
-    }
-    Serial.println();
-
-    // Parse the Solar Radiation value
-    Solar_Radiation = int(values[3] << 8 | values[4]);
-    Serial.print("Solar Radiation: ");
-    Serial.print(Solar_Radiation);
-    Serial.println(" W/m^2");
-}
-
-void setupWiFi()
-{
-    Serial.print("Menghubungkan ke WiFi...");
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(5000);
-        Serial.println("Menghubungkan ke WiFi...");
-    }
-    Serial.println("Terhubung ke WiFi");
-}
-
-void reconnectMQTT()
-{
-    while (!client.connected())
-    {
-        Serial.print("Menghubungkan ke broker MQTT...");
-        if (client.connect("ESP32Client", mqtt_user, mqtt_password))
-        {
-            Serial.println("Terhubung ke broker MQTT");
-        }
-        else
-        {
-            Serial.print("Gagal, kode kesalahan = ");
-            Serial.println(client.state());
-            delay(5000);
-        }
-    }
-}
-void callback(char *topic, byte *payload, unsigned int length)
-{
-    // Implementasi callback jika diperlukan
 }
 
 // Lampu UV
