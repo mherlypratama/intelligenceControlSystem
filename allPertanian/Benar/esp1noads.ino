@@ -224,8 +224,21 @@ void loop()
         nodered();
         delay(60000);
     }
+
     soil();
     nodered();
+
+    if (Serial.available() > 0)
+    {
+        char command = Serial.read();
+        if (command == 'R')
+        {
+            Serial.println("Restarting...");
+            delay(1000);
+            ESP.restart();
+        }
+    }
+
     delay(60000);
     // sensorBerat();
     // sensorInfra();
