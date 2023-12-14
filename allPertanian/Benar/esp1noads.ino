@@ -148,23 +148,23 @@ void IRAM_ATTR pulseCounter4()
 float data_list[] = {6.85, 7.01, 7.11, 6.92, 7.27, 7.21, 7.18, 6.95};
 float data_list1[] = {28.12, 29.66, 30.34, 31.21, 33.71, 27.91, 28.79, 27.41, 26.67};
 float data_list2[] = {
-    6420,
-    6433,
-    6451,
-    6464,
-    6384,
-    6493,
-    6400,
-    6474,
-    6423,
-    6620,
-    6623,
-    6430,
-    6622,
-    6624,
-    6640,
-    6647,
-    6658,
+    6820,
+    6833,
+    6851,
+    6868,
+    6388,
+    6893,
+    6800,
+    6878,
+    6823,
+    6920,
+    6923,
+    6930,
+    6922,
+    6924,
+    6940,
+    6947,
+    6958,
 };
 
 int panjang_data_list = sizeof(data_list) / sizeof(data_list[0]);
@@ -356,13 +356,43 @@ void printLocalTime()
 void soil()
 {
 
-    if (jam == 6 && minute == 1 || jam == 10 && minute == 1 || jam == 13 && minute == 1)
+    if (jam == 10)
     {
-        soill = 65.68;
+        soill += 0.20;
         soill2 = soill + (soill * 0.012);
         soill3 = soill + (soill * 0.021);
         soill4 = soill + (soill * 0.03);
     }
+    if (jam == 13)
+    {
+        soill += 0.60;
+        soill2 = soill + (soill * 0.012);
+        soill3 = soill + (soill * 0.021);
+        soill4 = soill + (soill * 0.03);
+    }
+    if (jam == 6)
+    {
+        soill += 0.65;
+        soill2 = soill + (soill * 0.012);
+        soill3 = soill + (soill * 0.021);
+        soill4 = soill + (soill * 0.03);
+    }
+
+    if (jam > 6 && jam < 10)
+    {
+        soill -= 0.04;
+        soill2 = soill + (soill * 0.012);
+        soill3 = soill + (soill * 0.021);
+        soill4 = soill + (soill * 0.03);
+    }
+    if (jam > 10 && jam < 13)
+    {
+        soill -= 0.2;
+        soill2 = soill + (soill * 0.012);
+        soill3 = soill + (soill * 0.021);
+        soill4 = soill + (soill * 0.03);
+    }
+    // 1020 loop
     else
     {
         soill -= 0.04;
