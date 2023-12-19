@@ -25,6 +25,8 @@ void loop()
 {
     delay(1000);
     printLocalTime();
+    relay22();
+    relay33();
 }
 
 void setwifi()
