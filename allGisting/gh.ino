@@ -13,6 +13,12 @@
 const char *ssid = "Lab Telkom 2.4 GHz";
 const char *password = "telekomunikasi";
 
+// Konfigurasi server MQTT di VPS Anda
+const char *mqtt_server = "vps.isi-net.org";
+const int mqtt_port = 1883;
+const char *mqtt_user = "unila";
+const char *mqtt_password = "pwdMQTT@123";
+
 const char *topic_utama = "ics/gisting";
 
 WiFiClient espClient;
