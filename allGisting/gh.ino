@@ -228,8 +228,10 @@ void nodered()
     client.publish(topic_utama, utamaStr); // Mengirim data suhu ke broker MQTT
 }
 
+// INI yang diubah
 void reconnectMQTT()
 {
+
     while (!client.connected())
     {
         Serial.print("Menghubungkan ke broker MQTT...");
