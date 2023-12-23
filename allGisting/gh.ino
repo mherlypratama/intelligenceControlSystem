@@ -59,16 +59,6 @@ void selectTCAChannel(uint8_t channel)
 void setup()
 {
     Serial.begin(115200);
-
-    // WIFI
-    setwifi();
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-    printLocalTime();
-    client.setServer(mqtt_server, mqtt_port);
-
-    ModifyAddress(0x00, Address0); // Modify device address0, please comment out this sentence after modifying the address0 and power on again.
-    mySerial2.begin(9600);
-    dht.begin();
     Wire.begin(); // Initialize the I2C communication
     // Configure TCA9548A channel (0 for the first sensor, 1 for the second sensor)
     selectTCAChannel(0); // Choose the channel for the first sensor
@@ -99,6 +89,16 @@ void setup()
             ;
     }
     ads.setGain(GAIN_TWOTHIRDS);
+
+    // WIFI
+    setwifi();
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    printLocalTime();
+    client.setServer(mqtt_server, mqtt_port);
+
+    ModifyAddress(0x00, Address0); // Modify device address0, please comment out this sentence after modifying the address0 and power on again.
+    mySerial2.begin(9600);
+    dht.begin();
 }
 
 void loop()
