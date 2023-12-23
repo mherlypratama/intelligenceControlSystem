@@ -228,6 +228,24 @@ void nodered()
     client.publish(topic_utama, utamaStr); // Mengirim data suhu ke broker MQTT
 }
 
+void reconnectMQTT()
+{
+    while (!client.connected())
+    {
+        Serial.print("Menghubungkan ke broker MQTT...");
+        if (client.connect("ESP32Client", mqtt_user, mqtt_password))
+        {
+            Serial.println("Terhubung ke broker MQTT");
+        }
+        else
+        {
+            Serial.print("Gagal, kode kesalahan = ");
+            Serial.println(client.state());
+            delay(5000);
+        }
+    }
+}
+
 void setwifi()
 {
     // Connect to Wi-Fi
