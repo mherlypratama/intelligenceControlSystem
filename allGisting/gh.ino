@@ -111,8 +111,6 @@ void loop()
     }
     client.loop();
 
-    nodered();
-
     humidity = dht.readHumidity();
     temperature = dht.readTemperature();
 
@@ -204,6 +202,7 @@ void loop()
     Serial.println("°C");
 
     Serial.println("-----------------------------------------------------------------");
+    nodered();
     delay(1000);
 }
 
