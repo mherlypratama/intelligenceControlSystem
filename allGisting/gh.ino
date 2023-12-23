@@ -34,6 +34,8 @@ const int daylightOffset_sec = 3600;
 int jam, minute, second, tanggal, bulan, tahun;
 float humidity, temperature, degrees;
 
+String windDirection;
+
 #define DHTPIN 3
 #define DHTTYPE DHT22
 #define TCAADDR 0x70
@@ -136,7 +138,7 @@ void loop()
     }
 
     // Tentukan keterangan arah mata angin berdasarkan sudut
-    String windDirection;
+    windDirection;
     if (degrees >= 337.5 || degrees < 22.5)
     {
         windDirection = "Utara";
