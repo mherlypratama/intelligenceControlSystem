@@ -34,8 +34,6 @@ const int daylightOffset_sec = 3600;
 int jam, minute, second, tanggal, bulan, tahun;
 float humidity, temperature, degrees;
 
-String windDirection;
-
 #define DHTPIN 3
 #define DHTTYPE DHT22
 #define TCAADDR 0x70
@@ -138,7 +136,7 @@ void loop()
     }
 
     // Tentukan keterangan arah mata angin berdasarkan sudut
-    windDirection;
+    String windDirection;
     if (degrees >= 337.5 || degrees < 22.5)
     {
         windDirection = "Utara";
@@ -220,17 +218,15 @@ void nodered()
              "\"windSpeed\": %.2f,"
              "\"temperature\": %.2f,"
              "\"humidity\": %.2f,"
-             "\"arahangin\": %.2f,"
              "\"derajatangin\": %.2f,"
              "\"infra1\": %.2f,"
              "\"infra2\": %.2f,"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, readWindSpeed(Address0), temperature, humidity, windDirection, degrees, mlx1.readObjectTempC(), mlx2.readObjectTempC());
+             tahun, bulan, tanggal, jam, minute, second, readWindSpeed(Address0), temperature, humidity, degrees, mlx1.readObjectTempC(), mlx2.readObjectTempC());
 
     client.publish(topic_utama, utamaStr); // Mengirim data suhu ke broker MQTT
 }
 
-// INI yang diubah
 void reconnectMQTT()
 {
 
