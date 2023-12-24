@@ -62,6 +62,7 @@ void setup(void)
     printLocalTime();
     setwind();
     setdht();
+    setanemo();
 }
 
 void loop()
@@ -74,6 +75,7 @@ void loop()
     printLocalTime();
     sensorwind();
     sensorwind();
+    sensoranemo();
 
     nodered();
 
