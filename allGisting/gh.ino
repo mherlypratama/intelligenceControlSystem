@@ -292,12 +292,6 @@ size_t readN(uint8_t *buf, size_t len)
     return offset;
 }
 
-/**
-   @brief 	Calculate CRC16_2 check value
-   @param buf 		Packet for calculating the check value
-   @param len 		Length of data that needs to check
-   @return 		Return a 16-bit check result.
-*/
 uint16_t CRC16_2(uint8_t *buf, int16_t len)
 {
     uint16_t crc = 0xFFFF;
@@ -322,12 +316,6 @@ uint16_t CRC16_2(uint8_t *buf, int16_t len)
     return crc;
 }
 
-/**
-   @brief  Adds a CRC_16 check to the end of the packet
-   @param buf 		Data packet that needs to add the check value
-   @param len 		Length of data that needs to add check
-   @return 		None
-*/
 void addedCRC(uint8_t *buf, int len)
 {
     uint16_t crc = 0xFFFF;
@@ -350,12 +338,6 @@ void addedCRC(uint8_t *buf, int len)
     buf[len] = crc % 0x100;
     buf[len + 1] = crc / 0x100;
 }
-
-/**
-   @brief 	Read the wind speed
-   @param Address0 	The read device address0
-   @return 		Wind speed unit m/s, return -1 for read timeout
-*/
 
 float readWindSpeed(uint8_t Address0)
 {
@@ -416,13 +398,6 @@ float readWindSpeed(uint8_t Address0)
     }
     return WindSpeed;
 }
-
-/**
-   @brief 	Modify the sensor device address
-   @param Address1 	The address of the device before modification. Use the 0x00 address to set any address, after setting, you need to re-power on and restart the module.
-   @param Address2 	The modified address of the device, the range is 0x00~0xFF,
-   @return 		Returns true to indicate that the modification was successful, and returns false to indicate that the modification failed.
-*/
 
 boolean ModifyAddress(uint8_t Address1, uint8_t Address2)
 {
