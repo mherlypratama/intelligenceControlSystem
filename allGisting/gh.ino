@@ -60,6 +60,7 @@ Adafruit_MLX90614 mlx2 = Adafruit_MLX90614(); // Objek untuk sensor kedua
 // **************************END*******************************
 
 int jam, minute, second, tanggal, bulan, tahun;
+float humidity, temperature;
 
 void selectTCAChannel(uint8_t channel)
 {
@@ -119,7 +120,7 @@ void nodered()
              "\"pompanutrisi\": %d,"
              "\"pompapendingin\": %d"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, temperature, humi, mlx1.readObjectTempC(), mlx2.readObjectTempC(), Address0, );
+             tahun, bulan, tanggal, jam, minute, second, temperature, humidity, mlx1.readObjectTempC(), mlx2.readObjectTempC(), Address0, );
 
     client.publish(topic_ketiga, utamaStr); // Mengirim data suhu ke broker MQTT
 }
@@ -288,8 +289,8 @@ void sensorwind()
     int16_t adcValue = ads.readADC_SingleEnded(windDirectionPin);
 
     // Konversi nilai analog menjadi sudut (0-360)
-    float voltage = adcValue * (4.096 / 32767.0);  // Konversi nilai ADC menjadi tegangan
-    float degrees = (voltage - 0.5) * 360.0 / 3.5; // Konversi tegangan menjadi sudut
+    float voltage = adcValue * (4.096 / 32767.0); // Konversi nilai ADC menjadi tegangan
+    degrees = (voltage - 0.5) * 360.0 / 3.5;      // Konversi tegangan menjadi sudut
 
     // Pastikan nilai sudut berada dalam rentang 0-360
     if (degrees < 0)
