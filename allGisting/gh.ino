@@ -92,7 +92,7 @@ void loop()
     }
     client.loop();
     printLocalTime();
-    sensorwind();
+    sensordht();
     sensorwind();
     sensoranemo();
     sensorinfra();
