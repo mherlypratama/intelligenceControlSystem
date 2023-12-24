@@ -23,7 +23,7 @@ const int mqtt_port = 1883;
 const char *mqtt_user = "unila";
 const char *mqtt_password = "pwdMQTT@123";
 
-const char *topic_ketiga = "ics/pertanian3";
+const char *topic_utama = "ics/gisting";
 
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 25200;
@@ -119,7 +119,7 @@ void nodered()
              "}",
              tahun, bulan, tanggal, jam, minute, second, temperature, humidity, mlx1.readObjectTempC(), mlx2.readObjectTempC(), Address0, degrees);
 
-    client.publish(topic_ketiga, utamaStr); // Mengirim data suhu ke broker MQTT
+    client.publish(topic_utama, utamaStr); // Mengirim data suhu ke broker MQTT
 }
 
 void printLocalTime()
