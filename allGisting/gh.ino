@@ -1,17 +1,19 @@
-#include <DHT.h>
-#include <SoftwareSerial.h>
-#include <Wire.h>
-#include <Adafruit_MLX90614.h>
-#include <Adafruit_ADS1X15.h>
-
 #include <OneWire.h>
+#include <WiFi.h>
 #include <PubSubClient.h>
-
 #include <WiFi.h>
 #include "time.h"
 
-const char *ssid = "Lab Telkom 2.4 GHz";
-const char *password = "telekomunikasi";
+#include <Wire.h>
+#include <Adafruit_ADS1X15.h>
+
+#include <DHT.h>
+
+#include <SoftwareSerial.h>
+
+// Konfigurasi jaringan Wi-Fi
+const char *ssid = "pertanian24";
+const char *password = "luarbiasa";
 
 // Konfigurasi server MQTT di VPS Anda
 const char *mqtt_server = "vps.isi-net.org";
@@ -19,7 +21,11 @@ const int mqtt_port = 1883;
 const char *mqtt_user = "unila";
 const char *mqtt_password = "pwdMQTT@123";
 
-const char *topic_utama = "ics/gisting";
+const char *topic_ketiga = "ics/pertanian3";
+
+const char *ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = 25200;
+const int daylightOffset_sec = 3600;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -27,92 +33,155 @@ PubSubClient client(espClient);
 unsigned long lastMsgTime = 0;
 const long interval = 5000; // Kirim data setiap 5 detik
 
-const char *ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 21600;
-const int daylightOffset_sec = 3600;
+// **************************SENSOR WIND*******************************
+#define ADS1115_ADDRESS 0x48
+const int windDirectionPin = 0; // Channel 0 pada ADS1115
+Adafruit_ADS1115 ads;
+// **************************END*******************************
+
+// **************************SENSOR DHT*******************************
+#define DHTPIN 13     // Pin data sensor DHT22 terhubung ke pin 2 pada ESP32
+#define DHTTYPE DHT22 // Jenis sensor, sesuaikan dengan sensor yang Anda gunakan
+DHT dht(DHTPIN, DHTTYPE);
+// **************************END*******************************
+
+// **************************SENSOR ANEMO*******************************
+SoftwareSerial mySerial2(16, 17); // Define the soft serial port, port 3 is TX, port 2 is RX,
+uint8_t Address0 = 0x10;
+// **************************END*******************************
 
 int jam, minute, second, tanggal, bulan, tahun;
-float humidity, temperature, degrees;
 
-#define DHTPIN 3
-#define DHTTYPE DHT22
-#define TCAADDR 0x70
-#define ADS1115_ADDRESS 0x48
-
-DHT dht(DHTPIN, DHTTYPE);
-SoftwareSerial mySerial2(33, 32); // Define the soft serial port, port 3 is TX, port 2 is RX,
-uint8_t Address0 = 0x10;
-const int windDirectionPin = 0;
-
-Adafruit_MLX90614 mlx1 = Adafruit_MLX90614(); // Objek untuk sensor pertama
-Adafruit_MLX90614 mlx2 = Adafruit_MLX90614();
-Adafruit_ADS1115 ads;
-
-void selectTCAChannel(uint8_t channel)
+void setup(void)
 {
-    // Select the appropriate channel on TCA9548A
-    Wire.beginTransmission(TCAADDR);
-    Wire.write(1 << channel);
-    Wire.endTransmission();
-}
-
-void setup()
-{
-    Serial.begin(115200);
-    Wire.begin(); // Initialize the I2C communication
-    // Configure TCA9548A channel (0 for the first sensor, 1 for the second sensor)
-    selectTCAChannel(0); // Choose the channel for the first sensor
-
-    if (!mlx1.begin())
-    {
-        Serial.println("Error connecting to MLX sensor 1. Check wiring.");
-        while (1)
-            ;
-    }
-
-    // Wait for a moment before switching to the second sensor
-    delay(1000);
-
-    // Configure TCA9548A channel for the second sensor
-    selectTCAChannel(1); // Choose the channel for the second sensor
-
-    if (!mlx2.begin())
-    {
-        Serial.println("Error connecting to MLX sensor 2. Check wiring.");
-        while (1)
-            ;
-    }
-    if (!ads.begin(ADS1115_ADDRESS))
-    {
-        Serial.println("Couldn't find ADS1115");
-        while (1)
-            ;
-    }
-    ads.setGain(GAIN_TWOTHIRDS);
-
-    // WIFI
-    setwifi();
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-    printLocalTime();
+    Serial.begin(9600);
+    setupWiFi();
     client.setServer(mqtt_server, mqtt_port);
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 
-    ModifyAddress(0x00, Address0); // Modify device address0, please comment out this sentence after modifying the address0 and power on again.
-    mySerial2.begin(9600);
-    dht.begin();
+    printLocalTime();
+    setwind();
+    setdht();
 }
 
 void loop()
 {
-    // Baca data dari sensor DHT22
-    printLocalTime();
     if (!client.connected())
     {
         reconnectMQTT();
     }
     client.loop();
+    printLocalTime();
+    sensorwind();
+    sensorwind();
 
-    humidity = dht.readHumidity();
-    temperature = dht.readTemperature();
+    nodered();
+
+    delay(60000);
+}
+
+void nodered()
+{
+
+    // Buat objek JSON yang berisi data dari keempat sensor
+    char utamaStr[1000]; // Buffer untuk menyimpan JSON
+    snprintf(utamaStr, sizeof(utamaStr),
+             "{"
+             "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
+             "\"pyrano\": %d,"
+             "\"temperatureBMP\": %.2f,"
+             "\"humidity\": %.2f,"
+             "\"pressure\": %.2f,"
+             "\"berat_2\": %.2f,"
+             "\"berat_3\": %.2f,"
+             "\"berat_4\": %.2f,"
+             "\"lampu_uv\": %d,"
+             "\"pompanutrisi\": %d,"
+             "\"pompapendingin\": %d"
+             "}",
+             tahun, bulan, tanggal, jam, minute, second, Solar_Radiation, temperature, humi, Pressure, beratdum, beratdum2, beratdum3, relay1, relay2, relay3);
+
+    client.publish(topic_ketiga, utamaStr); // Mengirim data suhu ke broker MQTT
+}
+
+void printLocalTime()
+{
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+        Serial.println("Failed to obtain time");
+        return;
+    }
+
+    jam = timeinfo.tm_hour;
+    minute = timeinfo.tm_min;
+    second = timeinfo.tm_sec;
+
+    tanggal = timeinfo.tm_mday;
+    bulan = timeinfo.tm_mon + 1;     // Bulan dimulai dari 0, sehingga Anda perlu menambahkan 1
+    tahun = 1900 + timeinfo.tm_year; // Tahun dimulai dari 1900
+
+    char strftime_buf[50]; // Buffer untuk menyimpan timestamp yang diformat
+    strftime(strftime_buf, sizeof(strftime_buf), "%A, %d %B %Y %H:%M:%S", &timeinfo);
+    Serial.println(strftime_buf);
+}
+
+void setupWiFi()
+{
+    Serial.print("Menghubungkan ke WiFi...");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(5000);
+        Serial.println("Menghubungkan ke WiFi...");
+    }
+    Serial.println("Terhubung ke WiFi");
+}
+
+void reconnectMQTT()
+{
+    while (!client.connected())
+    {
+        Serial.print("Menghubungkan ke broker MQTT...");
+        if (client.connect("ESP32Client", mqtt_user, mqtt_password))
+        {
+            Serial.println("Terhubung ke broker MQTT");
+        }
+        else
+        {
+            Serial.print("Gagal, kode kesalahan = ");
+            Serial.println(client.state());
+            delay(5000);
+        }
+    }
+}
+
+void callback(char *topic, byte *payload, unsigned int length)
+{
+    // Implementasi callback jika diperlukan
+}
+
+void setanemo()
+{
+    mySerial2.begin(9600);
+    ModifyAddress(0x00, Address0); // Modify device address0, please comment out this sentence after modifying the address0 and power on again.
+}
+
+void sensoranemo()
+{
+    Serial.print(readWindSpeed(Address0)); // Read wind speed
+    Serial.println("m/s");
+}
+
+void setdht()
+{
+    dht.begin();
+}
+
+void sensordht()
+{
+    float humidity = dht.readHumidity();
+    float temperature = dht.readTemperature();
 
     // Periksa apakah pembacaan sensor berhasil
     if (isnan(humidity) || isnan(temperature))
@@ -120,12 +189,38 @@ void loop()
         Serial.println("Gagal membaca data dari sensor DHT22!");
         return;
     }
+
+    // Tampilkan nilai kelembaban dan suhu
+    Serial.print("Kelembaban: ");
+    Serial.print(humidity);
+    Serial.print("%\t");
+    Serial.print("Suhu: ");
+    Serial.print(temperature);
+    Serial.println("°C");
+}
+
+void setwind()
+{
+    // Mulai koneksi dengan modul ADS1115
+    if (!ads.begin(ADS1115_ADDRESS))
+    {
+        Serial.println("Couldn't find ADS1115");
+        while (1)
+            ;
+    }
+
+    // Set range ke 4.096V (default adalah 6.144V)
+    ads.setGain(GAIN_TWOTHIRDS);
+}
+
+void sensorwind()
+{
     // Baca nilai analog dari sensor wind direction
     int16_t adcValue = ads.readADC_SingleEnded(windDirectionPin);
 
     // Konversi nilai analog menjadi sudut (0-360)
-    float voltage = adcValue * (4.096 / 32767.0); // Konversi nilai ADC menjadi tegangan
-    degrees = (voltage - 0.5) * 360.0 / 3.5;      // Konversi tegangan menjadi sudut
+    float voltage = adcValue * (4.096 / 32767.0);  // Konversi nilai ADC menjadi tegangan
+    float degrees = (voltage - 0.5) * 360.0 / 3.5; // Konversi tegangan menjadi sudut
 
     // Pastikan nilai sudut berada dalam rentang 0-360
     if (degrees < 0)
@@ -168,118 +263,11 @@ void loop()
         windDirection = "Barat Laut";
     }
 
-    // Tampilkan nilai kelembaban dan suhu
-    Serial.print("Kelembaban: ");
-    Serial.print(humidity);
-    Serial.print("%\t");
-    Serial.print("Suhu: ");
-    Serial.print(temperature);
-    Serial.println("°C");
-
-    Serial.print(readWindSpeed(Address0)); // Read wind speed
-    Serial.println("m/s");
-
     // Tampilkan keterangan arah mata angin
     Serial.print("Sudut: ");
     Serial.print(degrees);
     Serial.print("°\tArah Angin: ");
     Serial.println(windDirection);
-
-    selectTCAChannel(0); // Select channel 0 (first sensor)
-    Serial.print("Sensor 1 - Ambient temperature = ");
-    Serial.print(mlx1.readAmbientTempC());
-    Serial.print("°C   ");
-    Serial.print("Object temperature = ");
-    Serial.print(mlx1.readObjectTempC());
-    Serial.println("°C");
-
-    selectTCAChannel(1); // Select channel 1 (second sensor)
-    Serial.print("Sensor 2 - Ambient temperature = ");
-    Serial.print(mlx2.readAmbientTempC());
-    Serial.print("°C   ");
-    Serial.print("Object temperature = ");
-    Serial.print(mlx2.readObjectTempC());
-    Serial.println("°C");
-
-    Serial.println("-----------------------------------------------------------------");
-    nodered();
-    delay(1000);
-}
-
-void nodered()
-{
-
-    // Buat objek JSON yang berisi data dari keempat sensor
-    char utamaStr[1000]; // Buffer untuk menyimpan JSON
-    snprintf(utamaStr, sizeof(utamaStr),
-             "{"
-             "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
-             "\"windSpeed\": %.2f,"
-             "\"temperature\": %.2f,"
-             "\"humidity\": %.2f,"
-             "\"derajatangin\": %.2f,"
-             "\"infra1\": %.2f,"
-             "\"infra2\": %.2f,"
-             "}",
-             tahun, bulan, tanggal, jam, minute, second, readWindSpeed(Address0), temperature, humidity, degrees, mlx1.readObjectTempC(), mlx2.readObjectTempC());
-
-    client.publish(topic_utama, utamaStr); // Mengirim data suhu ke broker MQTT
-}
-
-void reconnectMQTT()
-{
-
-    while (!client.connected())
-    {
-        Serial.print("Menghubungkan ke broker MQTT...");
-        if (client.connect("ESP32Client", mqtt_user, mqtt_password))
-        {
-            Serial.println("Terhubung ke broker MQTT");
-        }
-        else
-        {
-            Serial.print("Gagal, kode kesalahan = ");
-            Serial.println(client.state());
-            delay(5000);
-        }
-    }
-}
-
-void setwifi()
-{
-    // Connect to Wi-Fi
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println("");
-    Serial.println("WiFi connected.");
-}
-
-void printLocalTime()
-{
-    struct tm timeinfo;
-    if (!getLocalTime(&timeinfo))
-    {
-        Serial.println("Failed to obtain time");
-        return;
-    }
-
-    jam = timeinfo.tm_hour;
-    minute = timeinfo.tm_min;
-    second = timeinfo.tm_sec;
-
-    tanggal = timeinfo.tm_mday;
-    bulan = timeinfo.tm_mon + 1;     // Bulan dimulai dari 0, sehingga Anda perlu menambahkan 1
-    tahun = 1900 + timeinfo.tm_year; // Tahun dimulai dari 1900
-
-    char strftime_buf[50]; // Buffer untuk menyimpan timestamp yang diformat
-    strftime(strftime_buf, sizeof(strftime_buf), "%A, %d %B %Y %H:%M:%S", &timeinfo);
-    Serial.println(strftime_buf);
 }
 
 size_t readN(uint8_t *buf, size_t len)
@@ -304,6 +292,12 @@ size_t readN(uint8_t *buf, size_t len)
     return offset;
 }
 
+/**
+   @brief 	Calculate CRC16_2 check value
+   @param buf 		Packet for calculating the check value
+   @param len 		Length of data that needs to check
+   @return 		Return a 16-bit check result.
+*/
 uint16_t CRC16_2(uint8_t *buf, int16_t len)
 {
     uint16_t crc = 0xFFFF;
@@ -328,6 +322,12 @@ uint16_t CRC16_2(uint8_t *buf, int16_t len)
     return crc;
 }
 
+/**
+   @brief  Adds a CRC_16 check to the end of the packet
+   @param buf 		Data packet that needs to add the check value
+   @param len 		Length of data that needs to add check
+   @return 		None
+*/
 void addedCRC(uint8_t *buf, int len)
 {
     uint16_t crc = 0xFFFF;
@@ -350,6 +350,12 @@ void addedCRC(uint8_t *buf, int len)
     buf[len] = crc % 0x100;
     buf[len + 1] = crc / 0x100;
 }
+
+/**
+   @brief 	Read the wind speed
+   @param Address0 	The read device address0
+   @return 		Wind speed unit m/s, return -1 for read timeout
+*/
 
 float readWindSpeed(uint8_t Address0)
 {
@@ -410,6 +416,13 @@ float readWindSpeed(uint8_t Address0)
     }
     return WindSpeed;
 }
+
+/**
+   @brief 	Modify the sensor device address
+   @param Address1 	The address of the device before modification. Use the 0x00 address to set any address, after setting, you need to re-power on and restart the module.
+   @param Address2 	The modified address of the device, the range is 0x00~0xFF,
+   @return 		Returns true to indicate that the modification was successful, and returns false to indicate that the modification failed.
+*/
 
 boolean ModifyAddress(uint8_t Address1, uint8_t Address2)
 {
