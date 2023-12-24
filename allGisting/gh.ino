@@ -113,13 +113,13 @@ void nodered()
              "\"humidity\": %.2f,"
              "\"infra1\": %.2f,"
              "\"infra2\": %.2f,"
-             "\"berat_3\": %.2f,"
-             "\"berat_4\": %.2f,"
+             "\"windspeed\": %.2f,"
+             "\"winddirection\": %.2f,"
              "\"lampu_uv\": %d,"
              "\"pompanutrisi\": %d,"
              "\"pompapendingin\": %d"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, temperature, humi, mlx1.readObjectTempC(), mlx2.readObjectTempC());
+             tahun, bulan, tanggal, jam, minute, second, temperature, humi, mlx1.readObjectTempC(), mlx2.readObjectTempC(), Address0, );
 
     client.publish(topic_ketiga, utamaStr); // Mengirim data suhu ke broker MQTT
 }
@@ -249,8 +249,8 @@ void setdht()
 
 void sensordht()
 {
-    float humidity = dht.readHumidity();
-    float temperature = dht.readTemperature();
+    humidity = dht.readHumidity();
+    temperature = dht.readTemperature();
 
     // Periksa apakah pembacaan sensor berhasil
     if (isnan(humidity) || isnan(temperature))
