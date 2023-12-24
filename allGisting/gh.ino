@@ -11,6 +11,8 @@
 
 #include <SoftwareSerial.h>
 
+#include <Adafruit_MLX90614.h>
+
 // Konfigurasi jaringan Wi-Fi
 const char *ssid = "pertanian24";
 const char *password = "luarbiasa";
@@ -50,7 +52,22 @@ SoftwareSerial mySerial2(16, 17); // Define the soft serial port, port 3 is TX, 
 uint8_t Address0 = 0x10;
 // **************************END*******************************
 
+// **************************SENSOR INFRARED*******************************
+// TCA9548A I2C Multiplexer Address
+#define TCAADDR 0x70
+Adafruit_MLX90614 mlx1 = Adafruit_MLX90614(); // Objek untuk sensor pertama
+Adafruit_MLX90614 mlx2 = Adafruit_MLX90614(); // Objek untuk sensor kedua
+// **************************END*******************************
+
 int jam, minute, second, tanggal, bulan, tahun;
+
+void selectTCAChannel(uint8_t channel)
+{
+    // Select the appropriate channel on TCA9548A
+    Wire.beginTransmission(TCAADDR);
+    Wire.write(1 << channel);
+    Wire.endTransmission();
+}
 
 void setup(void)
 {
@@ -161,6 +178,34 @@ void reconnectMQTT()
 void callback(char *topic, byte *payload, unsigned int length)
 {
     // Implementasi callback jika diperlukan
+}
+
+void setinfra()
+{
+    Wire.begin(); // Initialize the I2C communication
+
+    // Configure TCA9548A channel (0 for the first sensor, 1 for the second sensor)
+    selectTCAChannel(0); // Choose the channel for the first sensor
+
+    if (!mlx1.begin())
+    {
+        Serial.println("Error connecting to MLX sensor 1. Check wiring.");
+        while (1)
+            ;
+    }
+
+    // Wait for a moment before switching to the second sensor
+    delay(1000);
+
+    // Configure TCA9548A channel for the second sensor
+    selectTCAChannel(1); // Choose the channel for the second sensor
+
+    if (!mlx2.begin())
+    {
+        Serial.println("Error connecting to MLX sensor 2. Check wiring.");
+        while (1)
+            ;
+    }
 }
 
 void setanemo()
