@@ -14,8 +14,8 @@
 #include <Adafruit_MLX90614.h>
 
 // Konfigurasi jaringan Wi-Fi
-const char *ssid = "pertanian24";
-const char *password = "luarbiasa";
+const char *ssid = "Lab Telkom 2.4 GHz";
+const char *password = "telekomunikasi";
 
 // Konfigurasi server MQTT di VPS Anda
 const char *mqtt_server = "vps.isi-net.org";
@@ -42,13 +42,13 @@ Adafruit_ADS1115 ads;
 // **************************END*******************************
 
 // **************************SENSOR DHT*******************************
-#define DHTPIN 13     // Pin data sensor DHT22 terhubung ke pin 2 pada ESP32
+#define DHTPIN 3      // Pin data sensor DHT22 terhubung ke pin 2 pada ESP32
 #define DHTTYPE DHT22 // Jenis sensor, sesuaikan dengan sensor yang Anda gunakan
 DHT dht(DHTPIN, DHTTYPE);
 // **************************END*******************************
 
 // **************************SENSOR ANEMO*******************************
-SoftwareSerial mySerial2(16, 17); // Define the soft serial port, port 3 is TX, port 2 is RX,
+SoftwareSerial mySerial2(33, 32); // Define the soft serial port, port 3 is TX, port 2 is RX,
 uint8_t Address0 = 0x10;
 // **************************END*******************************
 
