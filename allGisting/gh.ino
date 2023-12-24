@@ -80,6 +80,7 @@ void setup(void)
     setwind();
     setdht();
     setanemo();
+    setinfra();
 }
 
 void loop()
@@ -93,6 +94,7 @@ void loop()
     sensorwind();
     sensorwind();
     sensoranemo();
+    sensorinfra();
 
     nodered();
 
@@ -107,18 +109,17 @@ void nodered()
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
              "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
-             "\"pyrano\": %d,"
-             "\"temperatureBMP\": %.2f,"
+             "\"temperature\": %.2f,"
              "\"humidity\": %.2f,"
-             "\"pressure\": %.2f,"
-             "\"berat_2\": %.2f,"
+             "\"infra1\": %.2f,"
+             "\"infra2\": %.2f,"
              "\"berat_3\": %.2f,"
              "\"berat_4\": %.2f,"
              "\"lampu_uv\": %d,"
              "\"pompanutrisi\": %d,"
              "\"pompapendingin\": %d"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, Solar_Radiation, temperature, humi, Pressure, beratdum, beratdum2, beratdum3, relay1, relay2, relay3);
+             tahun, bulan, tanggal, jam, minute, second, temperature, humi, mlx1.readObjectTempC(), mlx2.readObjectTempC());
 
     client.publish(topic_ketiga, utamaStr); // Mengirim data suhu ke broker MQTT
 }
