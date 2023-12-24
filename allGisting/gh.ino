@@ -208,6 +208,27 @@ void setinfra()
     }
 }
 
+void sensorinfra()
+{
+    selectTCAChannel(0); // Select channel 0 (first sensor)
+    Serial.print("Sensor 1 - Ambient temperature = ");
+    Serial.print(mlx1.readAmbientTempC());
+    Serial.print("°C   ");
+    Serial.print("Object temperature = ");
+    Serial.print(mlx1.readObjectTempC());
+    Serial.println("°C");
+
+    selectTCAChannel(1); // Select channel 1 (second sensor)
+    Serial.print("Sensor 2 - Ambient temperature = ");
+    Serial.print(mlx2.readAmbientTempC());
+    Serial.print("°C   ");
+    Serial.print("Object temperature = ");
+    Serial.print(mlx2.readObjectTempC());
+    Serial.println("°C");
+
+    Serial.println("-----------------------------------------------------------------");
+}
+
 void setanemo()
 {
     mySerial2.begin(9600);
