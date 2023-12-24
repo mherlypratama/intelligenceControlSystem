@@ -60,7 +60,7 @@ Adafruit_MLX90614 mlx2 = Adafruit_MLX90614(); // Objek untuk sensor kedua
 // **************************END*******************************
 
 int jam, minute, second, tanggal, bulan, tahun;
-float humidity, temperature;
+float humidity, temperature, degrees;
 
 void selectTCAChannel(uint8_t channel)
 {
@@ -115,12 +115,9 @@ void nodered()
              "\"infra1\": %.2f,"
              "\"infra2\": %.2f,"
              "\"windspeed\": %.2f,"
-             "\"winddirection\": %.2f,"
-             "\"lampu_uv\": %d,"
-             "\"pompanutrisi\": %d,"
-             "\"pompapendingin\": %d"
+             "\"winddirection\": %.2f"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, temperature, humidity, mlx1.readObjectTempC(), mlx2.readObjectTempC(), Address0, );
+             tahun, bulan, tanggal, jam, minute, second, temperature, humidity, mlx1.readObjectTempC(), mlx2.readObjectTempC(), Address0, degrees);
 
     client.publish(topic_ketiga, utamaStr); // Mengirim data suhu ke broker MQTT
 }
