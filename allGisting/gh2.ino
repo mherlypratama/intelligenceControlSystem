@@ -27,6 +27,33 @@ PubSubClient client(espClient);
 unsigned long lastMsgTime = 0;
 const long interval = 5000; // Kirim data setiap 5 detik
 
+// ********************WATER FLOW*******************
+#define LED_BUILTIN 2
+// Define pins for water flow sensors
+#define SENSOR1 3
+#define SENSOR2 25
+#define SENSOR3 26
+#define SENSOR4 0
+
+long currentMillis = 0;
+long previousMillis = 0;
+int interval = 1000;
+boolean ledState = LOW;
+
+// Calibration factors for each sensor (modify as needed)
+float calibrationFactor1 = 4.5;
+float calibrationFactor2 = 4.5;
+float calibrationFactor3 = 4.5;
+float calibrationFactor4 = 4.5;
+
+volatile byte pulseCount1, pulseCount2, pulseCount3, pulseCount4;
+byte pulse1Sec1, pulse1Sec2, pulse1Sec3, pulse1Sec4;
+float flowRate1, flowRate2, flowRate3, flowRate4;
+unsigned int flowMilliLitres1, flowMilliLitres2, flowMilliLitres3, flowMilliLitres4;
+unsigned long totalMilliLitres1, totalMilliLitres2, totalMilliLitres3, totalMilliLitres4;
+
+// *********************END***************************
+
 int jam, minute, second, tanggal, bulan, tahun;
 
 void setup(void)
