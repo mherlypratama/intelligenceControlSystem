@@ -26,7 +26,7 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 unsigned long lastMsgTime = 0;
-const long interval = 5000; // Kirim data setiap 5 detik
+const long Interval = 5000; // Kirim data setiap 5 detik
 
 // ***************************SOIL*************************
 Adafruit_ADS1115 ads;
