@@ -264,6 +264,7 @@ void nodered()
     //          "}",
     //          tanggal, bulan, tahun, jam, minute, second, phValue, (int)tdsValue, rainAccumulated, temp, Angle, readWindSpeed(Address0), mlx1.readObjectTempC(), mlx2.readObjectTempC(), infra3, i);
     // client.publish(topic_utama, utamaStr);
+    // ADAADA
 
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
