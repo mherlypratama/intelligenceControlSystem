@@ -6,9 +6,6 @@
 #include "time.h"
 #include <DFRobot_BMP3XX.h>
 
-#include "DFRobot_ESP_PH.h"
-#include "EEPROM.h"
-
 // Konfigurasi jaringan Wi-Fi
 const char *ssid = "pertanian24";
 const char *password = "luarbiasa";
@@ -36,7 +33,7 @@ DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
 
 // pins:
 #define RELAY_PIN 26
-#define RELAY_PIN2
+#define RELAY_PIN2 25
 #define RELAY_PIN3 33
 
 #define RE 13
@@ -45,13 +42,6 @@ DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
 const byte pyranometer[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0x0A};
 byte values[8];
 SoftwareSerial mod(14, 27);
-
-// pH
-DFRobot_ESP_PH ph;
-#define ESPADC 4096.0   // the esp Analog Digital Convertion value
-#define ESPVOLTAGE 3300 // the esp voltage supply value
-#define PH_PIN 35       // the esp gpio data pin number
-float voltage, phValue, temperatureph = 25;
 
 int Solar_Radiation, relay1, relay2, relay3;
 int jam, minute, second, tanggal, bulan, tahun;
@@ -69,7 +59,6 @@ void setup(void)
     pinMode(RELAY_PIN, OUTPUT);
     pinMode(RELAY_PIN2, OUTPUT);
     pinMode(RELAY_PIN3, OUTPUT);
-    setph();
 
     setbmp();
     setpyrano();
@@ -83,7 +72,7 @@ void loop()
     }
     client.loop();
     printLocalTime();
-    sensorph();
+
     sensorbmp();
     sensorpyrano();
     berat();
@@ -185,30 +174,6 @@ void reconnectMQTT()
 void callback(char *topic, byte *payload, unsigned int length)
 {
     // Implementasi callback jika diperlukan
-}
-
-void setph()
-{
-    EEPROM.begin(32); // needed to permit storage of calibration value in eeprom
-    ph.begin();
-}
-
-void sensorph()
-{
-    static unsigned long timepoint = millis();
-    if (millis() - timepoint > 1000U) // time interval: 1s
-    {
-        timepoint = millis();
-        // voltage = rawPinValue / esp32ADC * esp32Vin
-        voltage = analogRead(PH_PIN) / ESPADC * ESPVOLTAGE; // read the voltage
-        Serial.print("voltage:");
-        Serial.println(voltage, 4);
-
-        phValue = ph.readPH(voltage, temperatureph); // convert voltage to pH with temperatureph compensation
-        Serial.print("pH:");
-        Serial.println(phValue, 4);
-    }
-    ph.calibration(voltage, temperatureph);
 }
 
 void berat()
