@@ -1,9 +1,21 @@
 #include "DFRobot_ESP_PH.h"
 #include "EEPROM.h"
+#include <OneWire.h>
 
 // *******************PIN************************
 #define TdsSensorPin 39
-#define PH_PIN 36 // the esp gpio data pin number
+#define PH_PIN 36     // the esp gpio data pin number
+int DS18S20_Pin = 25; // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
+
+// **********************Suhu Air*******************
+// Temperature chip i/o
+OneWire ds(DS18S20_Pin);
+
+const int rainSensorPin = 15;           // Pin GPIO yang terhubung ke sensor hujan
+volatile unsigned long rainCounter = 0; // Variabel penghitung pulsa hujan
+float rainAccumulated = 0.0;            // Variabel untuk menghitung hujan yang terakumulasi
+unsigned long lastRainTime = 0;         // Waktu terakhir terdeteksi hujan
+unsigned long noRainTimeout = 10000;    // Timeout dalam milidetik (misalnya, 10 menit)
 
 // *******************TDS*********************
 #define VREF 5.0  // analog reference voltage(Volt) of the ADC
