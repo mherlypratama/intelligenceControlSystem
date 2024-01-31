@@ -20,7 +20,7 @@
 int analogBuffer[SCOUNT]; // store the analog value in the array, read from ADC
 int analogBufferTemp[SCOUNT];
 int analogBufferIndex = 0, copyIndex = 0;
-float averageVoltage = 0, tdsValue = 0, temperature = 25;
+float averageVoltage = 0, tdsValue = 0, temperaturetds = 25;
 
 void setup()
 {
@@ -46,8 +46,8 @@ void loop()
         for (copyIndex = 0; copyIndex < SCOUNT; copyIndex++)
             analogBufferTemp[copyIndex] = analogBuffer[copyIndex];
         averageVoltage = getMedianNum(analogBufferTemp, SCOUNT) * (float)VREF / 1024.0;                                                                                                  // read the analog value more stable by the median filtering algorithm, and convert to voltage value
-        float compensationCoefficient = 1.0 + 0.02 * (temperature - 25.0);                                                                                                               // temperature compensation formula: fFinalResult(25^C) = fFinalResult(current)/(1.0+0.02*(fTP-25.0));
-        float compensationVolatge = averageVoltage / compensationCoefficient;                                                                                                            // temperature compensation
+        float compensationCoefficient = 1.0 + 0.02 * (temperaturetds - 25.0);                                                                                                            // temperaturetds compensation formula: fFinalResult(25^C) = fFinalResult(current)/(1.0+0.02*(fTP-25.0));
+        float compensationVolatge = averageVoltage / compensationCoefficient;                                                                                                            // temperaturetds compensation
         tdsValue = (133.42 * compensationVolatge * compensationVolatge * compensationVolatge - 255.86 * compensationVolatge * compensationVolatge + 857.39 * compensationVolatge) * 0.5; // convert voltage value to tds value
         // Serial.print("voltage:");
         // Serial.print(averageVoltage,2);
