@@ -3,9 +3,17 @@
 #include <OneWire.h>
 
 // *******************PIN************************
+#define LED_BUILTIN 2
+
 #define TdsSensorPin 39
 #define PH_PIN 36     // the esp gpio data pin number
 int DS18S20_Pin = 25; // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
+
+// ************Water flow**************
+#define SENSOR1 16
+#define SENSOR2 4
+#define SENSOR3 12
+#define SENSOR4 18
 
 // **********************Suhu Air*******************
 // Temperature chip i/o
@@ -32,18 +40,186 @@ DFRobot_ESP_PH ph;
 #define ESPVOLTAGE 3300 // the esp voltage supply value
 float voltage, temperatureph = 25;
 
+long currentMillis = 0;
+long previousMillis = 0;
+int interval = 1000;
+boolean ledState = LOW;
+
+// Calibration factors for each sensor (modify as needed)
+float calibrationFactor1 = 4.5;
+float calibrationFactor2 = 4.5;
+float calibrationFactor3 = 4.5;
+float calibrationFactor4 = 4.5;
+
+volatile byte pulseCount1, pulseCount2, pulseCount3, pulseCount4;
+byte pulse1Sec1, pulse1Sec2, pulse1Sec3, pulse1Sec4;
+unsigned int flowMilliLitres1, flowMilliLitres2, flowMilliLitres3, flowMilliLitres4;
+unsigned long totalMilliLitres1, totalMilliLitres2, totalMilliLitres3, totalMilliLitres4;
+
+void IRAM_ATTR pulseCounter1()
+{
+    pulseCount1++;
+}
+
+void IRAM_ATTR pulseCounter2()
+{
+    pulseCount2++;
+}
+
+void IRAM_ATTR pulseCounter3()
+{
+    pulseCount3++;
+}
+
+void IRAM_ATTR pulseCounter4()
+{
+    pulseCount4++;
+}
+
 // Variabel Utama
 float temperatureair, phValue, tdsValue = 0;
+float flowRate1, flowRate2, flowRate3, flowRate4;
 
 void setup()
 {
     Serial.begin(9600);
     setph();
+    setsuhuair();
+    settds();
+    setwater();
 }
 
 void loop()
 {
     sensorph();
+    sensorsuhuair();
+    sensortds();
+    sensorwater();
+}
+
+void setwater()
+{
+
+    pinMode(LED_BUILTIN, OUTPUT);
+
+    pinMode(SENSOR1, INPUT_PULLUP);
+    pinMode(SENSOR2, INPUT_PULLUP);
+    pinMode(SENSOR3, INPUT_PULLUP);
+    pinMode(SENSOR4, INPUT_PULLUP);
+
+    pulseCount1 = 0;
+    pulseCount2 = 0;
+    pulseCount3 = 0;
+    pulseCount4 = 0;
+
+    flowRate1 = 0.0;
+    flowRate2 = 0.0;
+    flowRate3 = 0.0;
+    flowRate4 = 0.0;
+
+    flowMilliLitres1 = 0;
+    flowMilliLitres2 = 0;
+    flowMilliLitres3 = 0;
+    flowMilliLitres4 = 0;
+
+    totalMilliLitres1 = 0;
+    totalMilliLitres2 = 0;
+    totalMilliLitres3 = 0;
+    totalMilliLitres4 = 0;
+
+    attachInterrupt(digitalPinToInterrupt(SENSOR1), pulseCounter1, FALLING);
+    attachInterrupt(digitalPinToInterrupt(SENSOR2), pulseCounter2, FALLING);
+    attachInterrupt(digitalPinToInterrupt(SENSOR3), pulseCounter3, FALLING);
+    attachInterrupt(digitalPinToInterrupt(SENSOR4), pulseCounter4, FALLING);
+}
+
+void sensorwater()
+{
+
+    currentMillis = millis();
+
+    if (currentMillis - previousMillis > interval)
+    {
+        pulse1Sec1 = pulseCount1;
+        pulseCount1 = 0;
+
+        pulse1Sec2 = pulseCount2;
+        pulseCount2 = 0;
+
+        pulse1Sec3 = pulseCount3;
+        pulseCount3 = 0;
+
+        pulse1Sec4 = pulseCount4;
+        pulseCount4 = 0;
+
+        flowRate1 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec1) / calibrationFactor1;
+        flowRate2 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec2) / calibrationFactor2;
+        flowRate3 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec3) / calibrationFactor3;
+        flowRate4 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec4) / calibrationFactor4;
+
+        previousMillis = millis();
+
+        flowMilliLitres1 = (flowRate1 / 60) * 1000;
+        flowMilliLitres2 = (flowRate2 / 60) * 1000;
+        flowMilliLitres3 = (flowRate3 / 60) * 1000;
+        flowMilliLitres4 = (flowRate4 / 60) * 1000;
+
+        totalMilliLitres1 += flowMilliLitres1;
+        totalMilliLitres2 += flowMilliLitres2;
+        totalMilliLitres3 += flowMilliLitres3;
+        totalMilliLitres4 += flowMilliLitres4;
+
+        Serial.print("Flow 1: ");
+        Serial.print(int(flowRate1)); // Print the integer part of the variable
+        Serial.print("L/min,   ");
+
+        Serial.print("Flow 2: ");
+        Serial.print(int(flowRate2)); // Print the integer part of the variable
+        Serial.print("L/min,   ");
+
+        Serial.print("Flow 3: ");
+        Serial.print(int(flowRate3)); // Print the integer part of the variable
+        Serial.print("L/min,   ");
+
+        Serial.print("Flow 4: ");
+        Serial.print(int(flowRate4)); // Print the integer part of the variable
+        Serial.println("L/min");
+    }
+}
+
+void settds()
+{
+    pinMode(TdsSensorPin, INPUT);
+}
+
+void sensortds()
+{
+    static unsigned long analogSampleTimepoint = millis();
+    if (millis() - analogSampleTimepoint > 40U) // every 40 milliseconds,read the analog value from the ADC
+    {
+        analogSampleTimepoint = millis();
+        analogBuffer[analogBufferIndex] = analogRead(TdsSensorPin); // read the analog value and store into the buffer
+        analogBufferIndex++;
+        if (analogBufferIndex == SCOUNT)
+            analogBufferIndex = 0;
+    }
+    static unsigned long printTimepoint = millis();
+    if (millis() - printTimepoint > 800U)
+    {
+        printTimepoint = millis();
+        for (copyIndex = 0; copyIndex < SCOUNT; copyIndex++)
+            analogBufferTemp[copyIndex] = analogBuffer[copyIndex];
+        averageVoltage = getMedianNum(analogBufferTemp, SCOUNT) * (float)VREF / 1024.0;                                                                                                  // read the analog value more stable by the median filtering algorithm, and convert to voltage value
+        float compensationCoefficient = 1.0 + 0.02 * (temperaturetds - 25.0);                                                                                                            // temperaturetds compensation formula: fFinalResult(25^C) = fFinalResult(current)/(1.0+0.02*(fTP-25.0));
+        float compensationVolatge = averageVoltage / compensationCoefficient;                                                                                                            // temperaturetds compensation
+        tdsValue = (133.42 * compensationVolatge * compensationVolatge * compensationVolatge - 255.86 * compensationVolatge * compensationVolatge + 857.39 * compensationVolatge) * 0.5; // convert voltage value to tds value
+        // Serial.print("voltage:");
+        // Serial.print(averageVoltage,2);
+        // Serial.print("V   ");
+        Serial.print("TDS Value:");
+        Serial.print(tdsValue, 0);
+        Serial.println("ppm");
+    }
 }
 
 void setsuhuair()
@@ -161,4 +337,29 @@ float getTemp()
     float TemperatureSum = tempRead / 16.0;
 
     return TemperatureSum;
+}
+
+int getMedianNum(int bArray[], int iFilterLen)
+{
+    int bTab[iFilterLen];
+    for (byte i = 0; i < iFilterLen; i++)
+        bTab[i] = bArray[i];
+    int i, j, bTemp;
+    for (j = 0; j < iFilterLen - 1; j++)
+    {
+        for (i = 0; i < iFilterLen - j - 1; i++)
+        {
+            if (bTab[i] > bTab[i + 1])
+            {
+                bTemp = bTab[i];
+                bTab[i] = bTab[i + 1];
+                bTab[i + 1] = bTemp;
+            }
+        }
+    }
+    if ((iFilterLen & 1) > 0)
+        bTemp = bTab[(iFilterLen - 1) / 2];
+    else
+        bTemp = (bTab[iFilterLen / 2] + bTab[iFilterLen / 2 - 1]) / 2;
+    return bTemp;
 }
