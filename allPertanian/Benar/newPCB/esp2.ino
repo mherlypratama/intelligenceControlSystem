@@ -5,6 +5,11 @@
 #include <Wire.h>
 #include <SoftwareSerial.h>
 
+#include <DFRobot_BMP3XX.h>
+
+DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
+#define CALIBRATE_ABSOLUTE_DIFFERENCE
+
 // Konfigurasi jaringan Wi-Fi
 const char *ssid = "pertanian24";
 const char *password = "luarbiasa";
@@ -44,6 +49,10 @@ const byte pyranometer[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0x0A};
 byte values[8];
 SoftwareSerial mod(32, 26);
 
+#define RELAY_PIN1 17
+#define RELAY_PIN2 17
+#define RELAY_PIN3 16
+
 // HX711 constructor (dout pin, sck pin)
 HX711_ADC LoadCell_1(HX711_dout_1, HX711_sck_1); // HX711 1
 HX711_ADC LoadCell_2(HX711_dout_2, HX711_sck_2); // HX711 2
@@ -54,7 +63,8 @@ unsigned long t = 0;
 
 // *************Variabel Utama
 float berat2, berat3, berat4;
-int jam, minute, second, tanggal, bulan, tahun;
+float temperaturebmp, Pressure;
+int jam, minute, second, tanggal, bulan, tahun, relay1, relay2, relay3;
 
 void setup(void)
 {
@@ -62,6 +72,10 @@ void setup(void)
     setupWiFi();
     client.setServer(mqtt_server, mqtt_port);
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    setberat();
+    setpyrano();
+    setrelay();
+    setbmp();
 
     printLocalTime();
 }
@@ -74,7 +88,12 @@ void loop()
     }
     client.loop();
     printLocalTime();
-
+    sensorberat();
+    sensorbmp();
+    sensorpyrano();
+    relay11();
+    relay22();
+    relay33();
     nodered();
 
     delay(60000);
@@ -88,16 +107,149 @@ void nodered()
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
              "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
-             "\"temperature\": %.2f,"
-             "\"humidity\": %.2f,"
-             "\"infra1\": %.2f,"
-             "\"infra2\": %.2f,"
-             "\"windspeed\": %.2f,"
-             "\"winddirection\": %.2f"
+             "\"temperaturebmp\": %.2f,"
+             "\"pressurebmp\": %.2f,"
+             "\"berat2\": %.2f,"
+             "\"berat3\": %.2f,"
+             "\"berat4\": %.2f,"
+             "\"relay1\": %.d,"
+             "\"relay2\": %.d,"
+             "\"relay3\": %.d"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, temperature, humidity, mlx1.readObjectTempC(), mlx2.readObjectTempC(), Address0, degrees);
+             tahun, bulan, tanggal, jam, minute, second, temperaturebmp, Pressure, berat2, berat3, berat4, relay1, relay2, relay3);
 
     client.publish(topic_utama, utamaStr); // Mengirim data suhu ke broker MQTT
+}
+
+void setbmp()
+{
+
+    int rslt;
+    while (ERR_OK != (rslt = sensor.begin()))
+    {
+        if (ERR_DATA_BUS == rslt)
+        {
+            Serial.println("Data bus error!!!");
+        }
+        else if (ERR_IC_VERSION == rslt)
+        {
+            Serial.println("Chip versions do not match!!!");
+        }
+        delay(3000);
+    }
+    Serial.println("Begin ok!");
+
+    while (!sensor.setSamplingMode(sensor.eUltraPrecision))
+    {
+        Serial.println("Set samping mode fail, retrying....");
+        delay(3000);
+    }
+
+    delay(100);
+#ifdef CALIBRATE_ABSOLUTE_DIFFERENCE
+
+    if (sensor.calibratedAbsoluteDifference(540.0))
+    {
+        Serial.println("Absolute difference base value set successfully!");
+    }
+#endif
+
+    float sampingPeriodus = sensor.getSamplingPeriodUS();
+    Serial.print("samping period : ");
+    Serial.print(sampingPeriodus);
+    Serial.println(" us");
+
+    float sampingFrequencyHz = 1000000 / sampingPeriodus;
+    Serial.print("samping frequency : ");
+    Serial.print(sampingFrequencyHz);
+    Serial.println(" Hz");
+
+    Serial.println();
+}
+
+void sensorbmp()
+{
+    temperaturebmp = sensor.readTempC();
+    Serial.print("temperaturebmp : ");
+    Serial.print(temperaturebmp);
+    Serial.println(" C");
+
+    Pressure = sensor.readPressPa();
+    Serial.print("Pressure : ");
+    Serial.print(Pressure);
+    Serial.println(" Pa");
+
+    float altitude = sensor.readAltitudeM();
+    Serial.print("Altitude : ");
+    Serial.print(altitude);
+    Serial.println(" m");
+
+    Serial.println();
+    delay(1000);
+}
+
+void setrelay()
+{
+    pinMode(RELAY_PIN1, OUTPUT);
+    pinMode(RELAY_PIN2, OUTPUT);
+    pinMode(RELAY_PIN3, OUTPUT);
+}
+
+// Lampu UV
+void relay11()
+{
+    // Kontrol RELAY_PIN2
+    if (jam >= 18 && jam < 23 || jam >= 0 && jam < 6)
+    {
+        digitalWrite(RELAY_PIN, LOW);
+        relay1 = 1;
+        Serial.print("Relay 1: ");
+        Serial.println(relay1);
+    }
+    else
+    {
+        digitalWrite(RELAY_PIN, HIGH);
+        relay1 = 0;
+        Serial.println(relay1);
+    }
+}
+
+// Nutrisi
+void relay22()
+{
+
+    // Kontrol RELAY_PIN22
+    if (jam == 16 && minute >= 1 && minute < 5 || jam == 6 && minute >= 1 && minute < 5 || jam == 10 && minute >= 1 && minute < 5 || jam == 13 && minute >= 1 && minute < 5)
+    {
+        digitalWrite(RELAY_PIN2, LOW);
+        relay2 = 1;
+        Serial.println(relay2);
+    }
+    else
+    {
+        digitalWrite(RELAY_PIN2, HIGH);
+        relay2 = 0;
+        Serial.println(relay2);
+    }
+}
+
+// air pendingin
+void relay33()
+{
+
+    // Kontrol RELAY_PIN2
+    if (temperature > 35)
+    {
+        digitalWrite(RELAY_PIN3, LOW);
+        relay3 = 1;
+        Serial.println(relay3);
+    }
+    else
+    {
+        digitalWrite(RELAY_PIN3, HIGH);
+        relay3 = 0;
+        Serial.println(relay3);
+    }
 }
 
 void setpyrano()

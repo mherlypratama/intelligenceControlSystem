@@ -15,6 +15,7 @@
 
 #include <Wire.h>
 #include <Adafruit_MLX90614.h>
+#include <DHT.h>
 
 // Konfigurasi jaringan Wi-Fi
 const char *ssid = "pertanian24";
@@ -65,22 +66,12 @@ const int calVal_eepromAdress = 0;
 unsigned long t = 0;
 volatile boolean newDataReady;
 
-// *******************PIN************************
-const int HX711_dout = 26;
-const int HX711_sck = 25;
-#define LED_BUILTIN 2
-#define TdsSensorPin 39
-#define PH_PIN 36
-int DS18S20_Pin = 25;
+// **************DHT*****************
+#include <DHT.h>
 
-SoftwareSerial mySerial2(14, 0);
-uint8_t Address0 = 0x10;
-
-// ************Water flow**************
-#define SENSOR1 16
-#define SENSOR2 4
-#define SENSOR3 12
-#define SENSOR4 18
+// Constants
+#define DHTTYPE DHT22     // DHT 22  (AM2302)
+DHT dht(DHTPIN, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
 
 // **********************Suhu Air*******************
 
@@ -158,10 +149,27 @@ void selectTCAChannel(uint8_t channel)
     Wire.endTransmission();
 }
 
-// Variabel Utama
+// *******************PIN************************
+const int HX711_dout = 26; // Berat
+const int HX711_sck = 25;
+#define LED_BUILTIN 2   // Nothing
+#define TdsSensorPin 39 // TDS
+#define PH_PIN 36       // ph
+int DS18S20_Pin = 25;   // suhu air
 
+SoftwareSerial mySerial2(14, 0); // anemo
+uint8_t Address0 = 0x10;
+
+#define SENSOR1 16 // water
+#define SENSOR2 4
+#define SENSOR3 12
+#define SENSOR4 18
+#define DHTPIN 23 // dht
+
+// Variabel Utama
+int chk;
 int jam, minute, second, tanggal, bulan, tahun;
-float temperatureair, phValue, tdsValue = 0, Angle, berat1;
+float temperatureair, phValue, tdsValue = 0, Angle, berat1, temperaturedht, humidity;
 float flowRate1, flowRate2, flowRate3, flowRate4;
 float fix0, fix1, fix2, fix3;
 
@@ -178,6 +186,7 @@ void setup()
     setberat();
     setsoil();
     setinfra();
+    setdht();
 }
 
 void loop()
@@ -188,7 +197,7 @@ void loop()
     }
     client.loop();
     printLocalTime();
-
+    sensordht();
     sensorph();
     sensorsuhuair();
     sensortds();
@@ -242,11 +251,32 @@ void nodered()
              "\"Soil_1\": %.2f,"
              "\"Soil_2\": %.2f,"
              "\"Soil_3\": %.2f,"
-             "\"Soil_4\": %.2f"
+             "\"Soil_4\": %.2f,"
+             "\"temperature\": %.2f,"
+             "\"humidity\": %.2f"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, flowRate1, flowRate2, flowRate3, flowRate4, fix0, fix1, fix2, fix3);
+             tahun, bulan, tanggal, jam, minute, second, flowRate1, flowRate2, flowRate3, flowRate4, fix0, fix1, fix2, fix3, temperaturedht, humidity);
 
     client.publish(topic_kedua, keduaStr);
+}
+
+void setdht()
+{
+    dht.begin();
+}
+
+void sensordht()
+{
+    // Read data and store it to variables hum and temp
+    humidity = dht.readHumidity();
+    temperaturedht = dht.readTemperature();
+    // Print temperaturedht and humidity values to serial monitor
+    Serial.print("Humidity: ");
+    Serial.print(hum);
+    Serial.print(" %, Temp: ");
+    Serial.print(temperaturedht);
+    Serial.println(" Celsius");
+    delay(1000); // Delay 2 sec.
 }
 
 void setinfra()

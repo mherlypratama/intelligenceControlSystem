@@ -1,9 +1,14 @@
 #include <DHT.h>
 
-#define DHTPIN 13     // Pin data sensor DHT22 terhubung ke pin 2 pada ESP32
-#define DHTTYPE DHT22 // Jenis sensor, sesuaikan dengan sensor yang Anda gunakan
+// Constants
+#define DHTPIN 13         // what pin we're connected to
+#define DHTTYPE DHT22     // DHT 22  (AM2302)
+DHT dht(DHTPIN, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
 
-DHT dht(DHTPIN, DHTTYPE);
+// Variables
+int chk;
+float hum;  // Stores humidity value
+float temp; // Stores temperature value
 
 void setup()
 {
@@ -13,24 +18,14 @@ void setup()
 
 void loop()
 {
-    // Baca data dari sensor DHT22
-    float humidity = dht.readHumidity();
-    float temperature = dht.readTemperature();
-
-    // Periksa apakah pembacaan sensor berhasil
-    if (isnan(humidity) || isnan(temperature))
-    {
-        Serial.println("Gagal membaca data dari sensor DHT22!");
-        return;
-    }
-
-    // Tampilkan nilai kelembaban dan suhu
-    Serial.print("Kelembaban: ");
-    Serial.print(humidity);
-    Serial.print("%\t");
-    Serial.print("Suhu: ");
-    Serial.print(temperature);
-    Serial.println("°C");
-
-    delay(2000); // Tunggu 2 detik sebelum membaca ulang
+    // Read data and store it to variables hum and temp
+    hum = dht.readHumidity();
+    temp = dht.readTemperature();
+    // Print temp and humidity values to serial monitor
+    Serial.print("Humidity: ");
+    Serial.print(hum);
+    Serial.print(" %, Temp: ");
+    Serial.print(temp);
+    Serial.println(" Celsius");
+    delay(1000); // Delay 2 sec.
 }
