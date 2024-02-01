@@ -203,11 +203,9 @@ void nodered()
              "\"tempDs\": %.2f,"
              "\"windDirection\": %.2f,"
              "\"anemo\": %.2f,"
-             "\"infra1\": %.2f,"
-             "\"infra2\": %.2f,"
              "\"Berat_1\": %.2f"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, phValue, tdsValue, temperatureair, Angle, readWindSpeed(Address0), mlx1.readObjectTempC(), mlx2.readObjectTempC(), berat1);
+             tahun, bulan, tanggal, jam, minute, second, phValue, tdsValue, temperatureair, Angle, readWindSpeed(Address0), berat1);
     client.publish(topic_utama, utamaStr);
     // mlx1.readObjectTempC(), mlx2.readObjectTempC(), mlx3.readObjectTempC()
 
