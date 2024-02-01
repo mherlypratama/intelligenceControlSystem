@@ -194,21 +194,39 @@ void setnodered()
 void nodered()
 {
 
-    // Buat objek JSON yang berisi data dari keempat sensor
     char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
              "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
-             "\"temperature\": %.2f,"
-             "\"humidity\": %.2f,"
+             "\"ph\": %.2f,"
+             "\"tds\": %.2f,"
+             "\"tempDs\": %.2f,"
+             "\"windDirection\": %.2f,"
+             "\"anemo\": %.2f,"
              "\"infra1\": %.2f,"
              "\"infra2\": %.2f,"
-             "\"windspeed\": %.2f,"
-             "\"winddirection\": %.2f"
+             "\"Berat_1\": %.2f"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, temperature, humidity, mlx1.readObjectTempC(), mlx2.readObjectTempC(), Address0, degrees);
+             tahun, bulan, tanggal, jam, minute, second, phValue, tdsValue, temperatureair, Angle, readWindSpeed(Address0), mlx1.readObjectTempC(), mlx2.readObjectTempC(), berat1);
+    client.publish(topic_utama, utamaStr);
+    // mlx1.readObjectTempC(), mlx2.readObjectTempC(), mlx3.readObjectTempC()
 
-    client.publish(topic_utama, utamaStr); // Mengirim data suhu ke broker MQTT
+    char keduaStr[1000]; // Buffer untuk menyimpan JSON
+    snprintf(keduaStr, sizeof(keduaStr),
+             "{"
+             "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
+             "\"Water_1\": %.2f,"
+             "\"Water_2\": %.2f,"
+             "\"Water_3\": %.2f,"
+             "\"Water_4\": %.2f,"
+             "\"Soil_1\": %.2f,"
+             "\"Soil_2\": %.2f,"
+             "\"Soil_3\": %.2f,"
+             "\"Soil_4\": %.2f"
+             "}",
+             tahun, bulan, tanggal, jam, minute, second, flowRate1, flowRate2, flowRate3, flowRate4, fix0, fix1, fix2, fix3);
+
+    client.publish(topic_kedua, keduaStr);
 }
 
 void printLocalTime()
