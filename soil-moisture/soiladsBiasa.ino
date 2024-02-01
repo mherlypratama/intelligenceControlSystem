@@ -44,10 +44,10 @@ void loop(void)
     float datakonversi2 = (volts2 - adcMin) / (adcMax - adcMin) * 100;
     float datakonversi3 = (volts3 - adcMin) / (adcMax - adcMin) * 100;
 
-    float fix0 = 100 - datakonversi0;
-    float fix1 = 100 - datakonversi1;
-    float fix2 = 100 - datakonversi2;
-    float fix3 = 100 - datakonversi3;
+    fix0 = 100 - datakonversi0;
+    fix1 = 100 - datakonversi1;
+    fix2 = 100 - datakonversi2;
+    fix3 = 100 - datakonversi3;
 
     Serial.print("A0:");
     Serial.print(fix0);
