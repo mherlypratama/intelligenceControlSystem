@@ -5,7 +5,7 @@
 
 const byte pyranometer[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0x0A};
 byte values[8];
-SoftwareSerial mod(25, 26);
+SoftwareSerial mod(25, 26); // mod(Ro, DI)
 
 void setup()
 {

@@ -47,11 +47,11 @@ const int HX711_sck_2 = 12;  // mcu > HX711 no 2 sck pin
 #define DE 33
 const byte pyranometer[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0x0A};
 byte values[8];
-SoftwareSerial mod(32, 26);
+SoftwareSerial mod(32, 26); // 32 = Ro, 26 = DI
 
-#define RELAY_PIN1 17
-#define RELAY_PIN2 17
-#define RELAY_PIN3 16
+#define RELAY_PIN1 15
+#define RELAY_PIN2 2
+#define RELAY_PIN3 4
 
 // HX711 constructor (dout pin, sck pin)
 HX711_ADC LoadCell_1(HX711_dout_1, HX711_sck_1); // HX711 1
@@ -102,23 +102,20 @@ void loop()
 
 void nodered()
 {
-
     // Buat objek JSON yang berisi data dari keempat sensor
-    char utamaStr[1000]; // Buffer untuk menyimpan JSON
     snprintf(utamaStr, sizeof(utamaStr),
              "{"
              "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
              "\"temperaturebmp\": %.2f,"
-             "\"humibmp\": %.2f,"
              "\"pressurebmp\": %.2f,"
              "\"berat2\": %.2f,"
              "\"berat3\": %.2f,"
              "\"berat4\": %.2f,"
-             "\"relay1\": %.d,"
-             "\"relay2\": %.d,"
-             "\"relay3\": %.d"
+             "\"relay1\": %d,"
+             "\"relay2\": %d,"
+             "\"relay3\": %d"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, temperaturebmp, humibmp, Pressure, beratdum2, beratdum2, beratdum2, relay1, relay2, relay3);
+             tahun, bulan, tanggal, jam, minute, second, temperaturebmp, Pressure, berat2, berat3, berat4, relay1, relay2, relay3);
 
     client.publish(topic_utama, utamaStr); // Mengirim data suhu ke broker MQTT
 }

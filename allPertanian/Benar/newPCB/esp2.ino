@@ -1,14 +1,16 @@
+#include <SoftwareSerial.h>
+#include <HX711_ADC.h>
 #include <OneWire.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include "time.h"
-#include <Wire.h>
-#include <SoftwareSerial.h>
 
+#include <Wire.h>
 #include <DFRobot_BMP3XX.h>
 
-DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
-#define CALIBRATE_ABSOLUTE_DIFFERENCE
+#if defined(ESP8266) || defined(ESP32) || defined(AVR)
+#include <EEPROM.h>
+#endif
 
 // Konfigurasi jaringan Wi-Fi
 const char *ssid = "pertanian24";
@@ -30,28 +32,29 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 unsigned long lastMsgTime = 0;
-const long Interval = 5000; // Kirim data setiap 5 detik
+const long interval = 5000; // Kirim data setiap 5 detik
 
-#include <HX711_ADC.h>
-#if defined(ESP8266) || defined(ESP32) || defined(AVR)
-#include <EEPROM.h>
-#endif
+int jam, minute, second, tanggal, bulan, tahun;
 
-// pins:
+DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
+#define CALIBRATE_ABSOLUTE_DIFFERENCE
+
+// PIN:
+#define RELAY_PIN1 17
+#define RELAY_PIN2 17
+#define RELAY_PIN3 16
+
 const int HX711_dout_1 = 14; // mcu > HX711 no 1 dout pin
 const int HX711_sck_1 = 27;  // mcu > HX711 no 1 sck pin
 const int HX711_dout_2 = 13; // mcu > HX711 no 2 dout pin
 const int HX711_sck_2 = 12;  // mcu > HX711 no 2 sck pin
 
-#define RE 25
-#define DE 33
+#define RE 14
+#define DE 13
+
 const byte pyranometer[] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0x0A};
 byte values[8];
-SoftwareSerial mod(32, 26);
-
-#define RELAY_PIN1 17
-#define RELAY_PIN2 17
-#define RELAY_PIN3 16
+SoftwareSerial mod(25, 26);
 
 // HX711 constructor (dout pin, sck pin)
 HX711_ADC LoadCell_1(HX711_dout_1, HX711_sck_1); // HX711 1
@@ -61,23 +64,21 @@ const int calVal_eepromAdress_1 = 0; // eeprom adress for calibration value load
 const int calVal_eepromAdress_2 = 4; // eeprom adress for calibration value load cell 2 (4 bytes)
 unsigned long t = 0;
 
-// *************Variabel Utama
-float berat2, berat3, berat4;
-float temperaturebmp, Pressure;
-int jam, minute, second, tanggal, bulan, tahun, relay1, relay2, relay3;
+float temperaturebmp, Pressure, altitude;
+float a, b, c;
+int Solar_Radiation;
 
-void setup(void)
+void setup()
 {
     Serial.begin(9600);
     setupWiFi();
     client.setServer(mqtt_server, mqtt_port);
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-    setberat();
-    setpyrano();
-    setrelay();
-    setbmp();
 
     printLocalTime();
+    setpyrano();
+    setberat();
+    setbmp();
 }
 
 void loop()
@@ -88,15 +89,13 @@ void loop()
     }
     client.loop();
     printLocalTime();
+
+    sensorpyrano();
     sensorberat();
     sensorbmp();
-    sensorpyrano();
-    relay11();
-    relay22();
-    relay33();
     nodered();
 
-    delay(60000);
+    delay(1000);
 }
 
 void nodered()
@@ -109,16 +108,145 @@ void nodered()
              "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
              "\"temperaturebmp\": %.2f,"
              "\"pressurebmp\": %.2f,"
+             "\"pyrano\": %.2f,"
              "\"berat2\": %.2f,"
              "\"berat3\": %.2f,"
              "\"berat4\": %.2f,"
-             "\"relay1\": %.d,"
-             "\"relay2\": %.d,"
-             "\"relay3\": %.d"
+             "\"relay1\": %d,"
+             "\"relay2\": %d,"
+             "\"relay3\": %d"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, temperaturebmp, Pressure, berat2, berat3, berat4, relay1, relay2, relay3);
+             tahun, bulan, tanggal, jam, minute, second, temperaturebmp, Pressure, Solar_Radiation, a, b, c, relay1, relay2, relay3);
 
     client.publish(topic_utama, utamaStr); // Mengirim data suhu ke broker MQTT
+}
+
+void printLocalTime()
+{
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo))
+    {
+        Serial.println("Failed to obtain time");
+        return;
+    }
+
+    jam = timeinfo.tm_hour;
+    minute = timeinfo.tm_min;
+    second = timeinfo.tm_sec;
+
+    tanggal = timeinfo.tm_mday;
+    bulan = timeinfo.tm_mon + 1;     // Bulan dimulai dari 0, sehingga Anda perlu menambahkan 1
+    tahun = 1900 + timeinfo.tm_year; // Tahun dimulai dari 1900
+
+    char strftime_buf[50]; // Buffer untuk menyimpan timestamp yang diformat
+    strftime(strftime_buf, sizeof(strftime_buf), "%A, %d %B %Y %H:%M:%S", &timeinfo);
+    Serial.println(strftime_buf);
+}
+
+void setupWiFi()
+{
+    Serial.print("Menghubungkan ke WiFi...");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(5000);
+        Serial.println("Menghubungkan ke WiFi...");
+    }
+    Serial.println("Terhubung ke WiFi");
+}
+
+void reconnectMQTT()
+{
+    while (!client.connected())
+    {
+        Serial.print("Menghubungkan ke broker MQTT...");
+        if (client.connect("ESP32Client", mqtt_user, mqtt_password))
+        {
+            Serial.println("Terhubung ke broker MQTT");
+        }
+        else
+        {
+            Serial.print("Gagal, kode kesalahan = ");
+            Serial.println(client.state());
+            delay(5000);
+        }
+    }
+}
+
+void callback(char *topic, byte *payload, unsigned int length)
+{
+    // Implementasi callback jika diperlukan
+}
+
+void setrelay()
+{
+    pinMode(RELAY_PIN1, OUTPUT);
+    pinMode(RELAY_PIN2, OUTPUT);
+    pinMode(RELAY_PIN3, OUTPUT);
+}
+
+// Lampu UV
+void relay11()
+{
+    // Kontrol RELAY_PIN2
+    if (jam >= 18 && jam < 23 || jam >= 0 && jam < 6)
+    {
+        digitalWrite(RELAY_PIN1, LOW);
+        relay1 = 1;
+        Serial.print("Relay 1: ");
+        Serial.println(relay1);
+    }
+    else
+    {
+        digitalWrite(RELAY_PIN1, HIGH);
+        relay1 = 0;
+        Serial.println(relay1);
+    }
+}
+
+// Nutrisi
+void relay22()
+{
+
+    // Kontrol RELAY_PIN22
+    if (jam == 16 && minute >= 1 && minute < 5 || jam == 6 && minute >= 1 && minute < 5 || jam == 10 && minute >= 1 && minute < 5 || jam == 13 && minute >= 1 && minute < 5)
+    {
+        digitalWrite(RELAY_PIN2, LOW);
+        relay2 = 1;
+        Serial.println(relay2);
+    }
+    else
+    {
+        digitalWrite(RELAY_PIN2, HIGH);
+        relay2 = 0;
+        Serial.println(relay2);
+    }
+}
+
+// air pendingin
+void relay33()
+{
+
+    // Kontrol RELAY_PIN2
+    if (temperaturebmp > 35)
+    {
+        digitalWrite(RELAY_PIN3, LOW);
+        relay3 = 1;
+        Serial.println(relay3);
+    }
+    else
+    {
+        digitalWrite(RELAY_PIN3, HIGH);
+        relay3 = 0;
+        Serial.println(relay3);
+    }
+}
+
+void setpyrano()
+{
+    mod.begin(4800);
+    pinMode(RE, OUTPUT);
+    pinMode(DE, OUTPUT);
 }
 
 void setbmp()
@@ -179,126 +307,17 @@ void sensorbmp()
     Serial.print(Pressure);
     Serial.println(" Pa");
 
-    float altitude = sensor.readAltitudeM();
+    altitude = sensor.readAltitudeM();
     Serial.print("Altitude : ");
     Serial.print(altitude);
     Serial.println(" m");
 
     Serial.println();
-    delay(1000);
-}
-
-void setrelay()
-{
-    pinMode(RELAY_PIN1, OUTPUT);
-    pinMode(RELAY_PIN2, OUTPUT);
-    pinMode(RELAY_PIN3, OUTPUT);
-}
-
-// Lampu UV
-void relay11()
-{
-    // Kontrol RELAY_PIN2
-    if (jam >= 18 && jam < 23 || jam >= 0 && jam < 6)
-    {
-        digitalWrite(RELAY_PIN, LOW);
-        relay1 = 1;
-        Serial.print("Relay 1: ");
-        Serial.println(relay1);
-    }
-    else
-    {
-        digitalWrite(RELAY_PIN, HIGH);
-        relay1 = 0;
-        Serial.println(relay1);
-    }
-}
-
-// Nutrisi
-void relay22()
-{
-
-    // Kontrol RELAY_PIN22
-    if (jam == 16 && minute >= 1 && minute < 5 || jam == 6 && minute >= 1 && minute < 5 || jam == 10 && minute >= 1 && minute < 5 || jam == 13 && minute >= 1 && minute < 5)
-    {
-        digitalWrite(RELAY_PIN2, LOW);
-        relay2 = 1;
-        Serial.println(relay2);
-    }
-    else
-    {
-        digitalWrite(RELAY_PIN2, HIGH);
-        relay2 = 0;
-        Serial.println(relay2);
-    }
-}
-
-// air pendingin
-void relay33()
-{
-
-    // Kontrol RELAY_PIN2
-    if (temperature > 35)
-    {
-        digitalWrite(RELAY_PIN3, LOW);
-        relay3 = 1;
-        Serial.println(relay3);
-    }
-    else
-    {
-        digitalWrite(RELAY_PIN3, HIGH);
-        relay3 = 0;
-        Serial.println(relay3);
-    }
-}
-
-void setpyrano()
-{
-    mod.begin(4800);
-    pinMode(RE, OUTPUT);
-    pinMode(DE, OUTPUT);
-}
-
-void sensorpyrano()
-{
-    // Transmit the request to the sensor
-    digitalWrite(DE, HIGH);
-    digitalWrite(RE, HIGH);
-    delay(10);
-
-    mod.write(pyranometer, sizeof(pyranometer));
-
-    digitalWrite(DE, LOW);
-    digitalWrite(RE, LOW);
-    delay(10); // Give some time for the sensor to respond
-
-    // Wait until we have the expected number of bytes or timeout
-    unsigned long startTime = millis();
-    while (mod.available() < 7 && millis() - startTime < 1000)
-    {
-        delay(1);
-    }
-
-    // Read the response
-    byte index = 0;
-    while (mod.available() && index < 8)
-    {
-        values[index] = mod.read();
-        Serial.print(values[index], HEX);
-        Serial.print(" ");
-        index++;
-    }
-    Serial.println();
-
-    // Parse the Solar Radiation value
-    int Solar_Radiation = int(values[3] << 8 | values[4]);
-    Serial.print("Solar Radiation: ");
-    Serial.print(Solar_Radiation);
-    Serial.println(" W/m^2");
 }
 
 void setberat()
 {
+    delay(10);
     Serial.println();
     Serial.println("Starting...");
 
@@ -356,13 +375,15 @@ void sensorberat()
     {
         if (millis() > t + serialPrintInterval)
         {
-            berat2 = LoadCell_1.getData();
-            berat3 = LoadCell_2.getData();
-            berat4 = (berat2 + berat3) / 2;
+            a = LoadCell_1.getData();
+            b = LoadCell_2.getData();
+            c = (a + b) / 2;
             Serial.print("Load_cell 1 output val: ");
             Serial.print(a);
-            Serial.print("    Load_cell 2 output val: ");
+            Serial.print("Load_cell 2 output val: ");
             Serial.println(b);
+            Serial.print("Load_cell 3 output val: ");
+            Serial.println(c);
             newDataReady = 0;
             t = millis();
         }
@@ -390,59 +411,47 @@ void sensorberat()
     }
 }
 
-void printLocalTime()
+void setpyrano()
 {
-    struct tm timeinfo;
-    if (!getLocalTime(&timeinfo))
-    {
-        Serial.println("Failed to obtain time");
-        return;
-    }
-
-    jam = timeinfo.tm_hour;
-    minute = timeinfo.tm_min;
-    second = timeinfo.tm_sec;
-
-    tanggal = timeinfo.tm_mday;
-    bulan = timeinfo.tm_mon + 1;     // Bulan dimulai dari 0, sehingga Anda perlu menambahkan 1
-    tahun = 1900 + timeinfo.tm_year; // Tahun dimulai dari 1900
-
-    char strftime_buf[50]; // Buffer untuk menyimpan timestamp yang diformat
-    strftime(strftime_buf, sizeof(strftime_buf), "%A, %d %B %Y %H:%M:%S", &timeinfo);
-    Serial.println(strftime_buf);
+    mod.begin(4800);
+    pinMode(RE, OUTPUT);
+    pinMode(DE, OUTPUT);
 }
 
-void setupWiFi()
+void sensorpyrano()
 {
-    Serial.print("Menghubungkan ke WiFi...");
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(5000);
-        Serial.println("Menghubungkan ke WiFi...");
-    }
-    Serial.println("Terhubung ke WiFi");
-}
+    // Transmit the request to the sensor
+    digitalWrite(DE, HIGH);
+    digitalWrite(RE, HIGH);
+    delay(10);
 
-void reconnectMQTT()
-{
-    while (!client.connected())
-    {
-        Serial.print("Menghubungkan ke broker MQTT...");
-        if (client.connect("ESP32Client", mqtt_user, mqtt_password))
-        {
-            Serial.println("Terhubung ke broker MQTT");
-        }
-        else
-        {
-            Serial.print("Gagal, kode kesalahan = ");
-            Serial.println(client.state());
-            delay(5000);
-        }
-    }
-}
+    mod.write(pyranometer, sizeof(pyranometer));
 
-void callback(char *topic, byte *payload, unsigned int length)
-{
-    // Implementasi callback jika diperlukan
+    digitalWrite(DE, LOW);
+    digitalWrite(RE, LOW);
+    delay(10); // Give some time for the sensor to respond
+
+    // Wait until we have the expected number of bytes or timeout
+    unsigned long startTime = millis();
+    while (mod.available() < 7 && millis() - startTime < 1000)
+    {
+        delay(1);
+    }
+
+    // Read the response
+    byte index = 0;
+    while (mod.available() && index < 8)
+    {
+        values[index] = mod.read();
+        Serial.print(values[index], HEX);
+        Serial.print(" ");
+        index++;
+    }
+    Serial.println();
+
+    // Parse the Solar Radiation value
+    Solar_Radiation = int(values[3] << 8 | values[4]);
+    Serial.print("Solar Radiation: ");
+    Serial.print(Solar_Radiation);
+    Serial.println(" W/m^2");
 }

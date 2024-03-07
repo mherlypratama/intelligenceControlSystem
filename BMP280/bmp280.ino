@@ -2,7 +2,7 @@
 
 DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
 #define CALIBRATE_ABSOLUTE_DIFFERENCE
-
+float temperaturebmp, Pressure, altitude;
 void setup(void)
 {
     Serial.begin(115200);
@@ -52,17 +52,17 @@ void setup(void)
 
 void loop()
 {
-    float temperature = sensor.readTempC();
-    Serial.print("temperature : ");
-    Serial.print(temperature);
+    temperaturebmp = sensor.readTempC();
+    Serial.print("temperaturebmp : ");
+    Serial.print(temperaturebmp);
     Serial.println(" C");
 
-    float Pressure = sensor.readPressPa();
+    Pressure = sensor.readPressPa();
     Serial.print("Pressure : ");
     Serial.print(Pressure);
     Serial.println(" Pa");
 
-    float altitude = sensor.readAltitudeM();
+    altitude = sensor.readAltitudeM();
     Serial.print("Altitude : ");
     Serial.print(altitude);
     Serial.println(" m");

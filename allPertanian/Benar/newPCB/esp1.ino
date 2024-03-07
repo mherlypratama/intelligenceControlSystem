@@ -150,12 +150,12 @@ void selectTCAChannel(uint8_t channel)
 }
 
 // *******************PIN************************
-const int HX711_dout = 26; // Berat
+const int HX711_dout = 25; // Berat
 const int HX711_sck = 25;
 #define LED_BUILTIN 2   // Nothing
 #define TdsSensorPin 39 // TDS
 #define PH_PIN 36       // ph
-int DS18S20_Pin = 25;   // suhu air
+int DS18S20_Pin = 18;   // suhu air
 
 SoftwareSerial mySerial2(14, 0); // anemo
 uint8_t Address0 = 0x10;
@@ -163,7 +163,7 @@ uint8_t Address0 = 0x10;
 #define SENSOR1 16 // water
 #define SENSOR2 4
 #define SENSOR3 12
-#define SENSOR4 18
+#define SENSOR4 17
 #define DHTPIN 23 // dht
 
 // Variabel Utama

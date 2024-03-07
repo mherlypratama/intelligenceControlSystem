@@ -12,15 +12,15 @@ void setup(void)
 
 void loop(void)
 {
-    float temperature = getTemp();
-    Serial.println(temperature);
+    float temperatureds = getTemp();
+    Serial.println(temperatureds);
 
     delay(1000); // just here to slow down the output so it is easier to read
 }
 
 float getTemp()
 {
-    // returns the temperature from one DS18S20 in DEG Celsius
+    // returns the temperatureds from one DS18S20 in DEG Celsius
 
     byte data[12];
     byte addr[8];
