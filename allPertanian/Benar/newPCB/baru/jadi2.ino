@@ -5,6 +5,8 @@
 #include "time.h"
 #include <DFRobot_BMP3XX.h>
 #include <HX711_ADC.h>
+#include <DHT.h>
+
 #if defined(ESP8266) || defined(ESP32) || defined(AVR)
 #include <EEPROM.h>
 #endif
@@ -22,7 +24,7 @@ const char *mqtt_password = "pwdMQTT@123";
 const char *topic_ketiga = "ics/pertanian3";
 
 const char *ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 21600;
+const long gmtOffset_sec = 18000;
 const int daylightOffset_sec = 3600;
 
 WiFiClient espClient;
@@ -45,6 +47,16 @@ const int calVal_eepromAdress_3 = 8; // eeprom address for calibration value loa
 unsigned long t = 0;
 
 float a, b, c, d;
+
+// Constants
+#define DHTPIN 5          // what pin we're connected to
+#define DHTTYPE DHT22     // DHT 22  (AM2302)
+DHT dht(DHTPIN, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
+
+// Variables
+int chk;
+float humiditydht;
+float temperaturedht;
 
 unsigned long lastMsgTime = 0;
 const long interval = 5000; // Kirim data setiap 5 detik
@@ -70,6 +82,8 @@ void setup(void)
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
     printLocalTime();
 
+    dht.begin();
+
     pinMode(RELAY_PIN1, OUTPUT);
     pinMode(RELAY_PIN2, OUTPUT);
     pinMode(RELAY_PIN3, OUTPUT);
@@ -88,10 +102,22 @@ void loop()
     printLocalTime();
 
     sensorbmp();
+
+    // Read data and store it to variables humiditydht and temperaturedht
+    humiditydht = dht.readHumidity();
+    temperaturedht = dht.readTemperature();
+    // Print temperaturedht and humiditydhtidity values to serial monitor
+    Serial.print("Humidity: ");
+    Serial.print(humiditydht);
+    Serial.print(" %, Temp: ");
+    Serial.print(temperaturedht);
+    Serial.println(" Celsius");
+    delay(1000); // Delay 2 sec.
     sensorberat();
     relay11();
     relay22();
     relay33();
+    delay(1000);
     nodered();
 
     if (Serial.available() > 0)
@@ -117,6 +143,8 @@ void nodered()
              "{"
              "\"TimeStamp\": \"%04d-%02d-%02dT%02d:%02d:%02d+07:00\","
              "\"temperaturebmp\": %.2f,"
+             "\"temperaturedht\": %.2f,"
+             "\"humidity\": %.2f,"
              "\"pressure\": %.2f,"
              "\"berat_1\": %.2f,"
              "\"berat_2\": %.2f,"
@@ -126,7 +154,7 @@ void nodered()
              "\"pompanutrisi\": %d,"
              "\"pompapendingin\": %d"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, temperaturebmp, Pressure, d, a, b, c, relay1, relay2, relay3);
+             tahun, bulan, tanggal, jam, minute, second, temperaturebmp, temperaturedht, humiditydht, Pressure, d, a, b, c, relay1, relay2, relay3);
 
     client.publish(topic_ketiga, utamaStr); // Mengirim data suhu ke broker MQTT
 }
@@ -465,7 +493,7 @@ void relay33()
     int minute = timeinfo.tm_min;
 
     // Kontrol RELAY_PIN2
-    if (temperaturebmp > 33)
+    if (temperaturedht > 33)
     {
         digitalWrite(RELAY_PIN3, LOW);
         relay3 = 1;

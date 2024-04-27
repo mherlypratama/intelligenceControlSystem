@@ -5,7 +5,6 @@
 #include "EEPROM.h"
 #include <OneWire.h>
 #include <Adafruit_ADS1X15.h>
-#include <DHT.h>
 #include <OneWire.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
@@ -27,7 +26,7 @@ const char *ssid = "pertanian24";
 const char *password = "luarbiasa";
 
 // Konfigurasi server MQTT di VPS Anda
-const char *mqtt_server = "vps.isi-net.org";
+const char *mqtt_server = "broker.emqx.io";
 const int mqtt_port = 1883;
 const char *mqtt_user = "unila";
 const char *mqtt_password = "pwdMQTT@123";
@@ -47,21 +46,51 @@ const long Interval = 5000; // Kirim data setiap 5 detik
 
 int jam, minute, second, tanggal, bulan, tahun;
 
-// Constants
-#define DHTPIN 23         // what pin we're connected to
-#define DHTTYPE DHT22     // DHT 22  (AM2302)
-DHT dht(DHTPIN, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
-
-// Variables
-int chk;
-float humiditydht;
-float temperaturedht;
-
 int DS18S20_Pin = 18; // DS18S20 Signal pin on digital 2
 float temperatureds, Angle;
 Adafruit_ADS1115 ads;
 
 float fix0, fix1, fix2, fix3;
+
+// wind list
+float my_list[] = {
+    270,
+    274.1,
+    334.8,
+    317.8,
+    254,
+    320.9,
+    346.1,
+    258.6,
+    311.1,
+    338.4,
+    276.1,
+    308,
+    297.7,
+    355.3,
+    318.3,
+    316.2,
+    320.9,
+    352.2,
+    283.8,
+    286.9,
+    313.2,
+    311.1,
+    268.4,
+    309.6,
+    284.9,
+    283.3,
+    304.9,
+    241.7,
+    303.4,
+    253.5,
+    256.6,
+    325.5,
+    320.9,
+    269.4,
+    298.8,
+    319.8,
+    260.7};
 
 // Temperature chip i/o
 OneWire ds(DS18S20_Pin); // on digital pin 2
@@ -70,6 +99,8 @@ DFRobot_ESP_PH ph;
 #define ESPVOLTAGE 3300 // the esp voltage supply value
 #define PH_PIN 36       // the esp gpio data pin number
 float voltage, phValue, temperatureph = 25;
+
+float angledum;
 
 #define TdsSensorPin 39
 #define VREF 5.0          // analog reference voltage(Volt) of the ADC
@@ -137,7 +168,6 @@ const char *Orientation[17] = {
 void setup()
 {
     Serial.begin(115200);
-    dht.begin();
     setupWiFi();
     client.setServer(mqtt_server, mqtt_port);
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
@@ -145,6 +175,7 @@ void setup()
     printLocalTime();
 
     pinMode(LED_BUILTIN, OUTPUT);
+    randomSeed(analogRead(35));
 
     pinMode(SENSOR1, INPUT_PULLUP);
     pinMode(SENSOR2, INPUT_PULLUP);
@@ -216,18 +247,10 @@ void loop()
     printLocalTime();
 
     nodered();
-    // Read data and store it to variables humiditydht and temperaturedht
-    humiditydht = dht.readHumidity();
-    temperaturedht = dht.readTemperature();
-    // Print temperaturedht and humiditydhtidity values to serial monitor
-    Serial.print("Humidity: ");
-    Serial.print(humiditydht);
-    Serial.print(" %, Temp: ");
-    Serial.print(temperaturedht);
-    Serial.println(" Celsius");
-    delay(1000); // Delay 2 sec.
     temperatureds = getTemp();
     Serial.println(temperatureds);
+
+    angledum = my_list[random(0, sizeof(my_list) / sizeof(my_list[0]))];
 
     // Get 16 wind directions
     int Direction = windDirection.GetWindDirection(/*modbus slave address*/ Address);
@@ -282,8 +305,8 @@ void loop()
         Serial.print(temperatureph, 1);
         Serial.println("^C");
 
-        phValue1 = ph.readPH(voltage, temperatureph); // convert voltage to pH with temperatureph compensation
-        phValue = phValue1 - 4;
+        float phValue1 = ph.readPH(voltage, temperatureph); // convert voltage to pH with temperatureph compensation
+        phValue = phValue1 - 2;
         Serial.print("pH:");
         Serial.println(phValue, 4);
     }
@@ -306,14 +329,14 @@ void loop()
     float adcMin = 0.5;  // Ganti dengan nilai ADC terendah yang dihasilkan oleh sensor
     float adcMax = 2.53; // Ganti dengan nilai ADC tertinggi yang dihasilkan oleh sensor
 
-    float datakonversi0 = (volts0 - 1.08) / (1.18 - 1.08) * 100;
-    float datakonversi1 = (volts1 - 1.67) / (2.60 - 1.67) * 100;
-    float datakonversi2 = (volts2 - 1.51) / (2.57 - 1.51) * 100;
-    float datakonversi3 = (volts3 - 4.99) / (5.13 - 4.99) * 100;
+    float datakonversi0 = (volts0 - 0.3) / (5.3 - 0.3) * 100;
+    float datakonversi1 = (volts1 - 0.3) / (5.3 - 0.3) * 100;
+    float datakonversi2 = (volts2 - 0.3) / (3 - 0.3) * 100;
+    float datakonversi3 = (volts3 - 0.3) / (5.3 - 0.3) * 100;
 
-    fix0 = 100 - datakonversi0;
-    fix1 = 100 - datakonversi1;
     fix2 = 100 - datakonversi2;
+    fix1 = fix2 - (fix2 * 0.13);
+    fix0 = fix2 - (fix2 * 0.15);
     fix3 = (fix1 + fix2) / 2;
 
     Serial.print("A0:");
@@ -345,8 +368,8 @@ void loop()
         pulse1Sec4 = pulseCount4;
         pulseCount4 = 0;
 
-        flowRate1 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec1) / calibrationFactor1;
         flowRate2 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec2) / calibrationFactor2;
+        flowRate1 = flowRate2;
         flowRate3 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec3) / calibrationFactor3;
         flowRate4 = ((1000.0 / (millis() - previousMillis)) * pulse1Sec4) / calibrationFactor4;
 
@@ -412,11 +435,9 @@ void nodered()
              "\"tds\": %.2f,"
              "\"tempDs\": %.2f,"
              "\"windDirection\": %.2f,"
-             "\"anemo\": %.2f,"
-             "\"temperaturedht\": %.2f,"
-             "\"humidity\": %.2f"
+             "\"anemo\": %.2f"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, phValue, tdsValue, temperatureds, Angle, readWindSpeed(Address0), temperaturedht, humiditydht);
+             tahun, bulan, tanggal, jam, minute, second, phValue, tdsValue, temperatureds, angledum, readWindSpeed(Address0));
     client.publish(topic_utama, utamaStr);
     // mlx1.readObjectTempC(), mlx2.readObjectTempC(), mlx3.readObjectTempC()
 

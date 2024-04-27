@@ -5,7 +5,7 @@
 #include "RS485_Wind_Direction_Transmitter_V2.h"
 #include <HX711_ADC.h>
 #include <Adafruit_ADS1X15.h>
-
+#include <DHT.h>
 #include <OneWire.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
@@ -38,11 +38,11 @@ const long Interval = 5000; // Kirim data setiap 5 detik
 Adafruit_ADS1115 ads;
 
 #if defined(ARDUINO_AVR_UNO) || defined(ESP8266) // Use softserial
-SoftwareSerial softSerial(/*rx =*/13, /*tx =*/19);
+SoftwareSerial softSerial(/*rx =*/14, /*tx =*/0);
 RS485_Wind_Direction_Transmitter_V2 windDirection(/*softSerial =*/&softSerial);
 #include <EEPROM.h>
 #elif defined(ESP32) // Use the hardserial of remappable pin: Serial1
-RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1, /*rx =*/13, /*tx =*/19);
+RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1, /*rx =*/14, /*tx =*/0);
 #include <EEPROM.h>
 #else // Use hardserial: Serial1
 RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1);
@@ -54,10 +54,6 @@ const char *Orientation[17] = {
     "north", "north by northeast", "northeast", "east by northeast", "east", "east by southeast", "southeast", "south by southeast", "south",
     "south by southwest", "southwest", "west by southwest", "west", "west by northwest", "northwest", "north by northwest", "north"};
 
-// ****************Berat**************
-// HX711 constructor:
-HX711_ADC LoadCell(HX711_dout, HX711_sck);
-
 const int calVal_eepromAdress = 0;
 unsigned long t = 0;
 volatile boolean newDataReady;
@@ -68,16 +64,26 @@ const int HX711_sck = 25;
 #define LED_BUILTIN 2
 #define TdsSensorPin 39
 #define PH_PIN 36
-int DS18S20_Pin = 25;
+int DS18S20_Pin = 18;
+#define DHTPIN 23 // what pin we're connected to
 
-SoftwareSerial mySerial2(14, 0);
+SoftwareSerial mySerial2(13, 19);
 uint8_t Address0 = 0x10;
 
 // ************Water flow**************
-#define SENSOR1 16
+#define SENSOR1 12
 #define SENSOR2 4
-#define SENSOR3 12
-#define SENSOR4 18
+#define SENSOR3 16
+#define SENSOR4 17
+
+// Constants
+#define DHTTYPE DHT22     // DHT 22  (AM2302)
+DHT dht(DHTPIN, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
+
+// Variables
+int chk;
+float humiditydht;
+float temperaturedht;
 
 // **********************Suhu Air*******************
 
@@ -157,7 +163,8 @@ void setup()
     setwater();
     setanemo();
     setwind();
-    setberat();
+    setdht();
+    // setberat();
     setsoil();
 }
 
@@ -176,10 +183,11 @@ void loop()
     sensorwater();
     sensoranemo();
     sensorwind();
-    sensorberat();
+    sensordht();
+    // sensorberat();
     sensorsoil();
     nodered();
-    delay(60000);
+    delay(1000);
 }
 
 void setnodered()
@@ -203,9 +211,10 @@ void nodered()
              "\"tempDs\": %.2f,"
              "\"windDirection\": %.2f,"
              "\"anemo\": %.2f,"
-             "\"Berat_1\": %.2f"
+             "\"temperaturedht\": %.2f,"
+             "\"humidity\": %.2f"
              "}",
-             tahun, bulan, tanggal, jam, minute, second, phValue, tdsValue, temperatureair, Angle, readWindSpeed(Address0), berat1);
+             tahun, bulan, tanggal, jam, minute, second, phValue, tdsValue, temperatureair, Angle, readWindSpeed(Address0), temperaturedht, humiditydht);
     client.publish(topic_utama, utamaStr);
     // mlx1.readObjectTempC(), mlx2.readObjectTempC(), mlx3.readObjectTempC()
 
@@ -284,6 +293,25 @@ void callback(char *topic, byte *payload, unsigned int length)
     // Implementasi callback jika diperlukan
 }
 
+void setdht()
+{
+    dht.begin();
+}
+
+void sensordht()
+{
+    // Read data and store it to variables humiditydht and temperaturedht
+    humiditydht = dht.readHumidity();
+    temperaturedht = dht.readTemperature();
+    // Print temperaturedht and humiditydhtidity values to serial monitor
+    Serial.print("Humidity: ");
+    Serial.print(humiditydht);
+    Serial.print(" %, Temp: ");
+    Serial.print(temperaturedht);
+    Serial.println(" Celsius");
+    delay(1000); // Delay 2 sec.
+}
+
 void setsoil()
 {
 
@@ -343,84 +371,6 @@ void sensorsoil()
     Serial.println("%");
 
     delay(1000);
-}
-
-void setberat()
-{
-    delay(10);
-    Serial.println();
-    Serial.println("Starting...");
-
-    float calibrationValue;    // calibration value
-    calibrationValue = 108.71; // uncomment this if you want to set this value in the sketch
-#if defined(ESP8266) || defined(ESP32)
-    // EEPROM.begin(512); // uncomment this if you use ESP8266 and want to fetch the value from eeprom
-#endif
-    EEPROM.get(calVal_eepromAdress, calibrationValue); // uncomment this if you want to fetch the value from eeprom
-
-    LoadCell.begin();
-    // LoadCell.setReverseOutput();
-    unsigned long stabilizingtime = 2000; // tare preciscion can be improved by adding a few seconds of stabilizing time
-    boolean _tare = true;                 // set this to false if you don't want tare to be performed in the next step
-    LoadCell.start(stabilizingtime, _tare);
-    if (LoadCell.getTareTimeoutFlag())
-    {
-        Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
-        while (1)
-            ;
-    }
-    else
-    {
-        LoadCell.setCalFactor(calibrationValue); // set calibration value (float)
-        Serial.println("Startup is complete");
-    }
-
-    attachInterrupt(digitalPinToInterrupt(HX711_dout), dataReadyISR, FALLING);
-}
-
-void sensorberat()
-{
-    const int serialPrintInterval = 0; // increase value to slow down serial print activity
-
-    // get smoothed value from the dataset:
-    if (newDataReady)
-    {
-        if (millis() > t + serialPrintInterval)
-        {
-            float i = LoadCell.getData();
-            newDataReady = 0;
-            Serial.print("Load_cell output val: ");
-            Serial.print(i);
-            Serial.println(" gram");
-
-            // Serial.print("  ");
-            // Serial.println(millis() - t);
-            t = millis();
-        }
-    }
-
-    // receive command from serial terminal, send 't' to initiate tare operation:
-    if (Serial.available() > 0)
-    {
-        char inByte = Serial.read();
-        if (inByte == 't')
-            LoadCell.tareNoDelay();
-    }
-
-    // check if last tare operation is complete
-    if (LoadCell.getTareStatus() == true)
-    {
-        Serial.println("Tare complete");
-    }
-}
-
-// interrupt routine:
-void dataReadyISR()
-{
-    if (LoadCell.update())
-    {
-        newDataReady = 1;
-    }
 }
 
 void setwind()

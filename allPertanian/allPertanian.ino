@@ -27,6 +27,18 @@
 #include "DFRobot_BME280.h"
 #include "Wire.h"
 
+#include <DHT.h>
+
+// Constants
+#define DHTPIN 23         // what pin we're connected to
+#define DHTTYPE DHT22     // DHT 22  (AM2302)
+DHT dht(DHTPIN, DHTTYPE); //// Initialize DHT sensor for normal 16mhz Arduino
+
+// Variables
+int chk;
+float humiditydht;
+float temperaturedht;
+
 DFRobot_ADS1115 ads(&Wire);
 // TCA9548A I2C Multiplexer Address
 #define TCAADDR 0x70
@@ -48,17 +60,17 @@ BME bme(&Wire, 0x77); // select TwoWire peripheral and set sensor address
 DFRobot_ESP_PH ph;
 #define ESPADC 4096.0   // the esp Analog Digital Convertion value
 #define ESPVOLTAGE 3300 // the esp voltage supply value
-#define PH_PIN 35       // the esp gpio data pin number
+#define PH_PIN 36       // the esp gpio data pin number
 float voltage, phValue;
 
 // Wind
 #include "RS485_Wind_Direction_Transmitter_V2.h"
 
 #if defined(ARDUINO_AVR_UNO) || defined(ESP8266) // Use softserial
-SoftwareSerial softSerial(/*rx =*/1, /*tx =*/25);
+SoftwareSerial softSerial(/*rx =*/14, /*tx =*/0);
 RS485_Wind_Direction_Transmitter_V2 windDirection(/*softSerial =*/&softSerial);
 #elif defined(ESP32) // Use the hardserial of remappable pin: Serial1
-RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1, /*rx =*/1, /*tx =*/25);
+RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1, /*rx =*/14, /*tx =*/0);
 #else                // Use hardserial: Serial1
 RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1);
 #endif
@@ -70,12 +82,12 @@ const char *Orientation[17] = {
     "south by southwest", "southwest", "west by southwest", "west", "west by northwest", "northwest", "north by northwest", "north"};
 
 // Anemo
-SoftwareSerial mySerial2(26, 0); // Define the soft serial port, port 3 is TX, port 2 is RX,
+SoftwareSerial mySerial2(13, 19); // Define the soft serial port, port 3 is TX, port 2 is RX,
 
 uint8_t Address0 = 0x10;
 
 // TDS
-#define TdsSensorPin 34   // sesuaikan dengan pin arduino
+#define TdsSensorPin 39   // sesuaikan dengan pin arduino
 #define VREF 5.0          // analog reference voltage(Volt) of the ADC
 #define SCOUNT 30         // sum of sample point
 int analogBuffer[SCOUNT]; // store the analog value in the array, read from ADC
@@ -84,7 +96,7 @@ int analogBufferIndex = 0, copyIndex = 0;
 float averageVoltage = 0, tdsValue = 0, temperature = 25;
 
 // DS18S20 dan Rain
-int DS18S20_Pin = 25; // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
+int DS18S20_Pin = 18; // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
 
 // Temperature chip i/o
 OneWire ds(DS18S20_Pin);
@@ -99,10 +111,10 @@ unsigned long noRainTimeout = 10000;    // Timeout dalam milidetik (misalnya, 10
 #define LED_BUILTIN 2
 
 // Define pins for water flow sensors
-#define SENSOR1 3
-#define SENSOR2 25
-#define SENSOR3 26
-#define SENSOR4 0
+#define SENSOR1 12
+#define SENSOR2 4
+#define SENSOR3 16
+#define SENSOR4 17
 
 long currentMillis = 0;
 long previousMillis = 0;
@@ -247,6 +259,23 @@ void loop()
     sensorBME();
     Serial.println("-----------------------------------------------------------------");
     delay(1000);
+}
+
+void setdht()
+{
+}
+
+void sensordht()
+{
+    // Read data and store it to variables humiditydht and temperaturedht
+    humiditydht = dht.readHumidity();
+    temperaturedht = dht.readTemperature();
+    // Print temperaturedht and humiditydhtidity values to serial monitor
+    Serial.print("Humidity: ");
+    Serial.print(humiditydht);
+    Serial.print(" %, Temp: ");
+    Serial.print(temperaturedht);
+    Serial.println(" Celsius");
 }
 
 void setWater()

@@ -32,9 +32,9 @@ DFRobot_BMP388_I2C sensor(&Wire, sensor.eSDOVDD);
 #define CALIBRATE_ABSOLUTE_DIFFERENCE
 
 // pins:
-#define RELAY_PIN 14
-#define RELAY_PIN2 12
-#define RELAY_PIN3 13
+#define RELAY_PIN1 15
+#define RELAY_PIN2 2
+#define RELAY_PIN3 4
 
 #define RE 33
 #define DE 32

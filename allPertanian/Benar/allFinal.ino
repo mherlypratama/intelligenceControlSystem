@@ -37,10 +37,10 @@ const char *topic_kedua = "ics/pertanian2";
 #define LED_BUILTIN 2
 
 #if defined(ARDUINO_AVR_UNO) || defined(ESP8266) // Use softserial
-SoftwareSerial softSerial(/*rx =*/0, /*tx =*/26);
+SoftwareSerial softSerial(/*rx =*/14, /*tx =*/0);
 RS485_Wind_Direction_Transmitter_V2 windDirection(/*softSerial =*/&softSerial);
 #elif defined(ESP32) // Use the hardserial of remappable pin: Serial1
-RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1, /*rx =*/0, /*tx =*/26);
+RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1, /*rx =*/14, /*tx =*/0);
 #else                // Use hardserial: Serial1
 RS485_Wind_Direction_Transmitter_V2 windDirection(/*hardSerial =*/&Serial1);
 #endif
@@ -54,15 +54,15 @@ unsigned long lastMsgTime = 0;
 const long Interval = 5000; // Kirim data setiap 5 detik
 
 // *******************PIN*******************
-SoftwareSerial mySerial2(25, 19); // Define the soft serial port, port 3 is TX, port 2 is RX,
-int DS18S20_Pin = 23;             // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
+SoftwareSerial mySerial2(13, 19); // Define the soft serial port, port 3 is TX, port 2 is RX,
+int DS18S20_Pin = 18;             // Choose any digital pin for DS18S20 Signal (e.g., GPIO 14)
 const int rainSensorPin = 15;     // Pin GPIO yang terhubung ke sensor hujan
-#define PH_PIN 35                 // the esp gpio data pin number
-#define TdsSensorPin 34
-#define SENSOR1 14
-#define SENSOR2 13
-#define SENSOR3 17
-#define SENSOR4 16
+#define PH_PIN 36                 // the esp gpio data pin number
+#define TdsSensorPin 39
+#define SENSOR1 12
+#define SENSOR2 4
+#define SENSOR3 16
+#define SENSOR4 17
 const int HX711_dout = 4; // mcu > HX711 dout pin, must be external interrupt capable!
 const int HX711_sck = 12; // mcu > HX711 sck pin
 
