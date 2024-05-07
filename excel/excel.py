@@ -4,7 +4,7 @@ import random
 
 # Workbook() takes one, non-optional, argument
 # which is the filename that we want to create.
-workbook = xlsxwriter.Workbook("2.xlsx")
+workbook = xlsxwriter.Workbook("Nov-30.xlsx")
 
 # The workbook object is then used to add new
 # worksheet via the add_worksheet() method.
@@ -21,7 +21,7 @@ for b in jam:
     for c in menit:
         worksheet.write(
             f"A{b * 60 + c + 1}",
-            f"2023-11-29 {jam[b]}:{menit[c]}:{random.choice(detik)}",
+            f"2023-11-30 {jam[b]}:{menit[c]}:{random.choice(detik)}",
         )
 
 
