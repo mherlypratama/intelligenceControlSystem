@@ -1,300 +1,52 @@
-# import xlsxwriter module
-import xlsxwriter
-import random
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
 
-# Workbook() takes one, non-optional, argument
-# which is the filename that we want to create.
-workbook = xlsxwriter.Workbook("ph.xlsx")
+# Baca file CSV data BMKG
+bmkg_data = pd.read_csv(
+    "D:/kuliah/kodingan/github/intelligenceControlSystem/excel/bmkg.csv",
+    on_bad_lines="skip",
+)
 
-# The workbook object is then used to add new
-# worksheet via the add_worksheet() method.
-worksheet = workbook.add_worksheet()
+# Konversi kolom YEAR, MO, DY, dan HR ke string untuk membentuk timestamp
+bmkg_data["YEAR"] = bmkg_data["YEAR"].astype(str)
+bmkg_data["MO"] = bmkg_data["MO"].astype(str).str.zfill(2)  # Tambahkan leading zero
+bmkg_data["DY"] = bmkg_data["DY"].astype(str).str.zfill(2)  # Tambahkan leading zero
+bmkg_data["HR"] = bmkg_data["HR"].astype(str).str.zfill(2)  # Tambahkan leading zero
 
-# Use the worksheet object to write
-# data via the write() method.
-detik = list(range(60))
-menit = list(range(60))
-jam = list(range(24))
-tanggal = list(range(1, 32))
-ph = [
-    7.01,
-    6.95,
-    7.02,
-    7.01,
-    6.98,
-    6.89,
-    6.99,
-    6.97,
-    7.00,
-    7.01,
-    7.01,
-    6.96,
-    6.98,
-    7.11,
-    7.11,
-    6.95,
-    6.92,
-    6.92,
-    6.98,
-    7.17,
-    7.17,
-    7.12,
-    6.95,
-]
+# Membuat kolom timestamp di BMKG data
+bmkg_data["timestamp"] = pd.to_datetime(
+    bmkg_data[["YEAR", "MO", "DY", "HR"]].agg("-".join, axis=1), format="%Y-%m-%d-%H"
+)
 
-tds = [
-    257.97,
-    257.97,
-    256.28,
-    256.28,
-    256.28,
-    256.28,
-    257.97,
-    256.28,
-    256.28,
-    257.97,
-    257.97,
-    256.28,
-    254.58,
-    257.97,
-    257.97,
-    254.8,
-    257.97,
-    261.37,
-    257.97,
-    257.97,
-    257.97,
-    263.07,
-    261.37,
-    263.07,
-    261.37,
-    261.37,
-    263.07,
-    266.47,
-    266.47,
-    273.27,
-    273.27,
-    280.09,
-    283.51,
-    285.22,
-]
+# Buat DataFrame untuk timestamp dari 1 Januari 2024 sampai 5 Januari 2024 setiap menit
+start_date = datetime(2024, 1, 1)
+end_date = datetime(2024, 1, 6)
+timestamps = pd.date_range(start=start_date, end=end_date, freq="T")[:-1]
+df = pd.DataFrame(timestamps, columns=["timestamp"])
 
+# Mengisi nilai default untuk kolom-kolom lainnya
+# df["PS"] = np.nan  # Nilai awal tekanan
+df["humidity"] = np.nan  # Nilai awal kelembapan
+df["suhu"] = np.nan  # Nilai awal suhu
+df["wind"] = np.nan  # Nilai awal wind direction
 
-wind = [
-    300.8,
-    257.6,
-    271.5,
-    318.3,
-    328.6,
-    325.5,
-    320.4,
-    281.3,
-    336.3,
-    303.9,
-    302.9,
-    297.2,
-    317.1,
-    293.6,
-    331.7,
-    303.9,
-    294.6,
-    295.7,
-    325.5,
-    283.8,
-    324,
-    334.8,
-    327.6,
-    339.4,
-    299.8,
-    324.5,
-    329.1,
-    342.5,
-    297.2,
-    315.2,
-    266.9,
-    340.9,
-    316.2,
-    260.2,
-    344,
-    281.8,
-    298.8,
-    253.5,
-    349.2,
-    349.2,
-    298.2,
-    296.2,
-    323.4,
-    291.6,
-    317.8,
-    317.3,
-    236,
-    239.1,
-    239.6,
-    248.4,
-    344.5,
-    240.6,
-    353.3,
-    262.2,
-    319.3,
-]
+# Mengisi data PS, humidity, suhu, dan wind dari file BMKG
+# Interpolasi linier untuk PS, humidity, dan suhu
+df = df.merge(
+    bmkg_data[["timestamp", "humidity", "suhu", "wind"]],
+    on="timestamp",
+    how="left",
+)
+# df["PS"] = df["PS"].interpolate()
+df["humidity"] = df["humidity"].interpolate()
+df["suhu"] = df["suhu"].interpolate()
 
-suhu = [
-    36.78,
-    36.88,
-    37.49,
-    37.56,
-    37.67,
-    37.75,
-    37.76,
-    37.99,
-    38.23,
-    38.37,
-    38.53,
-    38.67,
-    38.9,
-    38.6,
-    38.96,
-    38.96,
-    38.97,
-    39,
-    38.99,
-    38.98,
-    39.01,
-    39.09,
-    39.03,
-    38.92,
-    38.88,
-    38.97,
-    39.04,
-    39.06,
-    39.11,
-    39.15,
-    39.15,
-    38.85,
-    38.84,
-    38.81,
-    38.82,
-    38.83,
-    38.84,
-    38.3,
-    38.9,
-    38.6,
-    38.78,
-    38.68,
-    38.49,
-    38.24,
-    38,
-    37.86,
-    37.49,
-    37.41,
-    37.4,
-    37,
-    37.36,
-    37.36,
-    37.43,
-    37.5,
-    37.6,
-    37.76,
-    37.82,
-    37.85,
-    37.89,
-    37.9,
-    38.6,
-    38.19,
-    38.28,
-    38.47,
-    38.54,
-    38.46,
-    38.37,
-    38.34,
-    38.34,
-    38.32,
-    38.9,
-    38.7,
-    38.5,
-    38.26,
-    38.29,
-    38.26,
-    38.22,
-    38.17,
-    38.27,
-]
+# Mengisi nilai wind direction dengan nilai yang sama untuk setiap menit dalam satu jam
+df["wind"] = df["wind"].ffill()
 
-humidity = 83.1 - suhu
+# Tulis DataFrame ke file Excel
+output_file = "greenhouse_data_per_minute.xlsx"
+df.to_excel(output_file, index=False)
 
-berat = [
-    7337.04,
-    7338,
-    7336.52,
-    7336.48,
-    7336.44,
-    7336.4,
-    7336.36,
-    7336.24,
-    7336.12,
-    7336.8,
-    7336.4,
-    7336,
-    7335.96,
-    7335.92,
-    7335.88,
-    7335.83,
-    7335.79,
-    7335.75,
-    7335.71,
-    7335.67,
-    7335.63,
-    7335.59,
-]
-
-berat2 = berat1 - (berat1 * 0.1)
-berat3 = berat1 - (berat1 * 0.15)
-berat4 = berat1 - (berat1 * 0.18)
-
-tekanan = [
-    94578.02,
-    94575.24,
-    94562.31,
-    94562.65,
-    94565.87,
-    94560.07,
-    94557.91,
-    94545.01,
-    94539.37,
-    94541.7,
-    94534.44,
-    94538.13,
-    94539.61,
-    94536.52,
-    94537.67,
-    94542.12,
-    94534.84,
-    94536.56,
-    94531.19,
-    94528.96,
-    94526.19,
-    94527.95,
-]
-
-for b in jam:
-    for c in menit:
-        worksheet.write(
-            f"A{b * 60 + c + 1}",
-            f"2023-11-29 {jam[b]}:{menit[c]}:{random.choice(detik)}",
-        )
-        worksheet.write(
-            f"B{b * 60 + c + 1}",
-            "ph",
-        )
-        worksheet.write(
-            f"C{b * 60 + c + 1}",
-            "tds",
-        )
-        worksheet.write(
-            f"D{b * 60 + c + 1}",
-            "tds",
-        )
-
-# Finally, close the Excel file
-# via the close() method.
-workbook.close()
+print(f"File Excel '{output_file}' berhasil dibuat.")
